@@ -36,36 +36,39 @@ export function DevCoordinatePanel({ position, onClose }) {
   if (!position) return null
 
   return (
-    <div className="absolute bottom-6 left-24 z-[1100] bg-background/95 backdrop-blur-md border border-border rounded-lg shadow-lg p-4 w-72">
-      <div className="flex items-start justify-between mb-2">
-        <h3 className="text-sm font-semibold">Coordinates</h3>
+    <div className="absolute bottom-6 right-6 z-[1100] bg-background/95 backdrop-blur-md border border-border rounded-lg shadow-lg p-4 w-72">
+      <div className="flex items-start justify-between mb-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wider">Dev Tools</h3>
         <button
           onClick={onClose}
           className="w-6 h-6 flex items-center justify-center rounded hover:bg-muted/50 transition-colors"
           aria-label="Close"
         >
-          <X size={14} className="text-foreground" />
+          <X size={14} />
         </button>
       </div>
 
-      <div className="space-y-2">
-        <div className="font-mono text-sm bg-muted p-2 rounded">
-          [{position.lat}, {position.lng}]
+      <div className="space-y-3">
+        <div>
+          <p className="text-xs text-muted-foreground mb-2">Coordinates</p>
+          <div className="font-mono text-xs bg-muted/50 p-2 rounded border border-border">
+            [{position.lat}, {position.lng}]
+          </div>
         </div>
 
         <Button
           variant="outline"
           size="sm"
           onClick={copyToClipboard}
-          className="w-full"
+          className="w-full text-xs"
         >
           <Copy size={14} className="mr-2" />
-          {copied ? 'Copied!' : 'Copy Array'}
+          {copied ? 'Copied!' : 'Copy'}
         </Button>
 
-        <div className="text-xs text-muted-foreground pt-2 border-t border-border">
-          Click anywhere on the map to update coordinates
-        </div>
+        <p className="text-xs text-muted-foreground italic">
+          Click map to update
+        </p>
       </div>
     </div>
   )

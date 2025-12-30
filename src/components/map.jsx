@@ -3,24 +3,26 @@ import { MapContainer, TileLayer, ImageOverlay, ZoomControl, useMap, Marker } fr
 import { CircleNotch } from '@phosphor-icons/react'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
+import { loadExtraMarkers } from '@/lib/extraMarkers'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { MAP_BOUNDS, getMapImagePath } from '@/config/spokane/years'
 import {
+  MAP_BOUNDS,
+  getMapImagePath,
   MAP_CENTER,
   DEFAULT_ZOOM,
   MIN_ZOOM,
   MAX_ZOOM,
   MAX_BOUNDS,
   MAX_BOUNDS_VISCOSITY,
-  TRANSITION_DELAY
-} from '@/config/spokane/map'
-import { createMapPin } from '@/components/MapPin'
-import { SPOKANE_LOCATIONS, getVisibleLocations, CATEGORY_COLORS } from '@/config/spokane/locations'
+  TRANSITION_DELAY,
+  LOCATIONS,
+  getVisibleLocations
+} from '@/config'
 import { MapClickListener, DevCoordinatePanel } from '@/components/DevCoordinatePicker'
 import { DEV_MODE } from '@/config/app'
 
@@ -211,6 +213,7 @@ export function Map({ selectedYear, onMapReady, setSelectedLocation }) {
   const [preloadTotal, setPreloadTotal] = React.useState(0)
   const [hoveredMarker, setHoveredMarker] = React.useState(null)
   const [devPosition, setDevPosition] = React.useState(null)
+  const [extraMarkersReady, setExtraMarkersReady] = React.useState(false)
   const mapInstanceRef = React.useRef(null)
 
   // Store map instance when ready
@@ -223,13 +226,13 @@ export function Map({ selectedYear, onMapReady, setSelectedLocation }) {
 
   // Get visible locations for the current year
   const visibleLocations = React.useMemo(() => {
-    return getVisibleLocations(SPOKANE_LOCATIONS, displayedYear)
+    return getVisibleLocations(LOCATIONS, displayedYear)
   }, [displayedYear])
 
   // Handle marker click: open carousel and center on marker
   const handleMarkerClick = React.useCallback((markerId, position) => {
-    // Find the index of this marker in SPOKANE_LOCATIONS
-    const markerIndex = SPOKANE_LOCATIONS.findIndex(loc => loc.id === markerId)
+    // Find the index of this marker in LOCATIONS
+    const markerIndex = LOCATIONS.findIndex(loc => loc.id === markerId)
     if (markerIndex !== -1) {
       setSelectedLocation(markerIndex)
     }
@@ -239,6 +242,17 @@ export function Map({ selectedYear, onMapReady, setSelectedLocation }) {
       mapInstanceRef.current.setView(position, mapInstanceRef.current.getZoom(), { animate: true })
     }
   }, [setSelectedLocation])
+
+  // Load ExtraMarkers plugin on mount
+  React.useEffect(() => {
+    loadExtraMarkers()
+      .then(() => {
+        setExtraMarkersReady(true)
+      })
+      .catch((error) => {
+        console.error('Failed to load ExtraMarkers:', error)
+      })
+  }, [])
 
   // Preload ALL images on mount
   React.useEffect(() => {
@@ -333,8 +347,10 @@ export function Map({ selectedYear, onMapReady, setSelectedLocation }) {
 
       {/* Modern base map - always visible */}
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        url="https://tiles.stadiamaps.com/tiles/stamen_toner_lite/{z}/{x}/{y}{r}.png"
+        minZoom={0}
+        maxZoom={20}
       />
 
       {/* Previous historical map overlay - fading out */}
@@ -360,21 +376,27 @@ export function Map({ selectedYear, onMapReady, setSelectedLocation }) {
       )}
 
       {/* Historical markers - visible based on year */}
-      {visibleLocations.map(location => {
-        const markerIcon = createMapPin(location.icon, {
-          color: CATEGORY_COLORS[location.category] || '#3b82f6',
-          size: 40,
+      {extraMarkersReady && visibleLocations.map((location, index) => {
+        // Create numbered marker using ExtraMarkers (same as storymaps template)
+        const icon = L.ExtraMarkers.icon({
+          icon: 'fa-number',
+          number: index + 1,
+          markerColor: 'blue',
+          shape: 'circle',
+          prefix: 'fa'
         })
 
         return (
-          <MarkerWithTooltip
+          <Marker
             key={location.id}
-            markerId={location.id}
             position={location.position}
-            icon={markerIcon}
-            label={location.label}
-            onClick={() => handleMarkerClick(location.id, location.position)}
-            setHoveredMarker={setHoveredMarker}
+            icon={icon}
+            opacity={0.9}
+            eventHandlers={{
+              click: () => handleMarkerClick(location.id, location.position),
+              mouseover: () => setHoveredMarker({ id: location.id, label: location.label, position: location.position }),
+              mouseout: () => setHoveredMarker(null)
+            }}
           />
         )
       })}
