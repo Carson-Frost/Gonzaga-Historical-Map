@@ -6,7 +6,7 @@ import { Timeline } from '@/components/Timeline'
 import { LocationCarousel } from '@/components/LocationCarousel'
 import { Dock, DockIcon } from '@/components/Dock'
 import { MAP_CENTER, DEFAULT_ZOOM } from '@/config/spokane/map'
-import { SPOKANE_LOCATIONS } from '@/config/spokane/markers'
+import { SPOKANE_LOCATIONS } from '@/config/spokane/locations'
 
 function App() {
   // Load selected year from localStorage or default to 2025

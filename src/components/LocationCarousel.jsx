@@ -2,19 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import { CaretLeft, CaretRight } from '@phosphor-icons/react'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { SPOKANE_LOCATIONS } from '@/config/spokane/markers'
-import { getLocationDetails } from '@/data/spokane/locations'
+import { SPOKANE_LOCATIONS, getVisibleLocations, getLocationTimeline } from '@/config/spokane/locations'
 
 export function LocationCarousel({ selectedYear, selectedLocation, setSelectedLocation, centerOnLocation }) {
   const titleRef = useRef(null)
   const [fontSize, setFontSize] = useState('text-lg')
 
   // Get visible locations for the current year
-  const visibleLocations = SPOKANE_LOCATIONS.filter(location => {
-    if (!location.yearRange) return true
-    const [startYear, endYear] = location.yearRange
-    return selectedYear >= startYear && selectedYear <= endYear
-  })
+  const visibleLocations = getVisibleLocations(SPOKANE_LOCATIONS, selectedYear)
 
   // If no visible locations, close the carousel
   if (visibleLocations.length === 0) {
@@ -32,7 +27,7 @@ export function LocationCarousel({ selectedYear, selectedLocation, setSelectedLo
   }, [selectedLocation, visibleLocations.length, setSelectedLocation])
 
   const currentLocation = visibleLocations[selectedLocation]
-  const locationDetails = getLocationDetails(currentLocation.id, selectedYear)
+  const locationTimeline = getLocationTimeline(currentLocation, selectedYear)
 
   // Adjust font size to fit content
   useEffect(() => {
@@ -57,7 +52,7 @@ export function LocationCarousel({ selectedYear, selectedLocation, setSelectedLo
         setFontSize('text-lg')
       }
     }
-  }, [currentLocation, locationDetails, selectedLocation])
+  }, [currentLocation, locationTimeline, selectedLocation])
 
   const goToPrevious = () => {
     const newIndex = selectedLocation === 0 ? visibleLocations.length - 1 : selectedLocation - 1
@@ -84,14 +79,14 @@ export function LocationCarousel({ selectedYear, selectedLocation, setSelectedLo
 
       {/* Title */}
       <h3 ref={titleRef} className={`${fontSize} font-bold mb-3 pb-2 border-b border-border pr-8 whitespace-nowrap overflow-hidden`}>
-        {locationDetails?.name || currentLocation.label} <span className="text-sm text-muted-foreground font-normal relative -top-[1.25px]">-</span> <span className="text-xs text-muted-foreground font-normal relative -top-0.5">{selectedLocation + 1} / {visibleLocations.length}</span>
+        {currentLocation.label} <span className="text-sm text-muted-foreground font-normal relative -top-[1.25px]">-</span> <span className="text-xs text-muted-foreground font-normal relative -top-0.5">{selectedLocation + 1} / {visibleLocations.length}</span>
       </h3>
 
       {/* Image Carousel */}
-      {locationDetails?.images && locationDetails.images.length > 0 ? (
+      {locationTimeline?.images && locationTimeline.images.length > 0 ? (
         <div className="relative mb-3 bg-muted rounded-lg overflow-hidden h-48 flex items-center justify-center">
           <div className="text-muted-foreground text-sm">
-            Image placeholder: {locationDetails.images[0]}
+            Image placeholder: {locationTimeline.images[0]}
           </div>
         </div>
       ) : (
@@ -103,7 +98,7 @@ export function LocationCarousel({ selectedYear, selectedLocation, setSelectedLo
       {/* Description */}
       <div className="flex-1 overflow-y-auto mb-3">
         <p className="text-sm leading-relaxed">
-          {locationDetails?.description || currentLocation.description}
+          {locationTimeline?.description || ""}
         </p>
       </div>
 

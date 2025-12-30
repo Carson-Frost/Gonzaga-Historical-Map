@@ -20,7 +20,9 @@ import {
   TRANSITION_DELAY
 } from '@/config/spokane/map'
 import { createMapPin } from '@/components/MapPin'
-import { SPOKANE_LOCATIONS, getVisibleMarkers, CATEGORY_COLORS } from '@/config/spokane/markers'
+import { SPOKANE_LOCATIONS, getVisibleLocations, CATEGORY_COLORS } from '@/config/spokane/locations'
+import { MapClickListener, DevCoordinatePanel } from '@/components/DevCoordinatePicker'
+import { DEV_MODE } from '@/config/app'
 
 // Fix for default marker icons in React-Leaflet
 delete L.Icon.Default.prototype._getIconUrl
@@ -208,6 +210,7 @@ export function Map({ selectedYear, onMapReady, setSelectedLocation }) {
   const [preloadProgress, setPreloadProgress] = React.useState(0)
   const [preloadTotal, setPreloadTotal] = React.useState(0)
   const [hoveredMarker, setHoveredMarker] = React.useState(null)
+  const [devPosition, setDevPosition] = React.useState(null)
   const mapInstanceRef = React.useRef(null)
 
   // Store map instance when ready
@@ -218,9 +221,9 @@ export function Map({ selectedYear, onMapReady, setSelectedLocation }) {
     }
   }, [onMapReady])
 
-  // Get visible markers for the current year
-  const visibleMarkers = React.useMemo(() => {
-    return getVisibleMarkers(SPOKANE_LOCATIONS, displayedYear)
+  // Get visible locations for the current year
+  const visibleLocations = React.useMemo(() => {
+    return getVisibleLocations(SPOKANE_LOCATIONS, displayedYear)
   }, [displayedYear])
 
   // Handle marker click: open carousel and center on marker
@@ -300,7 +303,16 @@ export function Map({ selectedYear, onMapReady, setSelectedLocation }) {
   }
 
   return (
-    <MapContainer
+    <>
+      {/* Dev coordinate picker panel - renders OUTSIDE the map */}
+      {DEV_MODE && (
+        <DevCoordinatePanel
+          position={devPosition}
+          onClose={() => setDevPosition(null)}
+        />
+      )}
+
+      <MapContainer
       center={MAP_CENTER}
       zoom={DEFAULT_ZOOM}
       minZoom={MIN_ZOOM}
@@ -313,6 +325,11 @@ export function Map({ selectedYear, onMapReady, setSelectedLocation }) {
       <MapController onMapReady={handleMapReady} />
       <ZoomControl position="bottomleft" />
       <TooltipOverlay hoveredMarker={hoveredMarker} />
+
+      {/* Dev click listener - renders INSIDE the map */}
+      {DEV_MODE && (
+        <MapClickListener onPositionClick={setDevPosition} />
+      )}
 
       {/* Modern base map - always visible */}
       <TileLayer
@@ -343,24 +360,25 @@ export function Map({ selectedYear, onMapReady, setSelectedLocation }) {
       )}
 
       {/* Historical markers - visible based on year */}
-      {visibleMarkers.map(marker => {
-        const markerIcon = createMapPin(marker.icon, {
-          color: CATEGORY_COLORS[marker.category] || '#3b82f6',
+      {visibleLocations.map(location => {
+        const markerIcon = createMapPin(location.icon, {
+          color: CATEGORY_COLORS[location.category] || '#3b82f6',
           size: 40,
         })
 
         return (
           <MarkerWithTooltip
-            key={marker.id}
-            markerId={marker.id}
-            position={marker.position}
+            key={location.id}
+            markerId={location.id}
+            position={location.position}
             icon={markerIcon}
-            label={marker.label}
-            onClick={() => handleMarkerClick(marker.id, marker.position)}
+            label={location.label}
+            onClick={() => handleMarkerClick(location.id, location.position)}
             setHoveredMarker={setHoveredMarker}
           />
         )
       })}
     </MapContainer>
+    </>
   )
 }
