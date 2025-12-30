@@ -23,13 +23,22 @@ export function MapClickListener({ onPositionClick }) {
  * This prevents click-through issues
  */
 export function DevCoordinatePanel({ position, onClose }) {
-  const [copied, setCopied] = useState(false)
+  const [copiedLat, setCopiedLat] = useState(false)
+  const [copiedLng, setCopiedLng] = useState(false)
 
-  const copyToClipboard = () => {
+  const copyLatitude = () => {
     if (position) {
-      navigator.clipboard.writeText(`[${position.lat}, ${position.lng}]`)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      navigator.clipboard.writeText(position.lat)
+      setCopiedLat(true)
+      setTimeout(() => setCopiedLat(false), 2000)
+    }
+  }
+
+  const copyLongitude = () => {
+    if (position) {
+      navigator.clipboard.writeText(position.lng)
+      setCopiedLng(true)
+      setTimeout(() => setCopiedLng(false), 2000)
     }
   }
 
@@ -49,22 +58,41 @@ export function DevCoordinatePanel({ position, onClose }) {
       </div>
 
       <div className="space-y-3">
-        <div>
-          <p className="text-xs text-muted-foreground mb-2">Coordinates</p>
-          <div className="font-mono text-xs bg-muted/50 p-2 rounded border border-border">
-            [{position.lat}, {position.lng}]
+        <div className="space-y-2">
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">Latitude</p>
+            <div className="flex gap-2">
+              <div className="flex-1 font-mono text-xs bg-muted/50 p-2 rounded border border-border">
+                {position.lat}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={copyLatitude}
+                className="px-3 text-xs"
+              >
+                <Copy size={14} />
+              </Button>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">Longitude</p>
+            <div className="flex gap-2">
+              <div className="flex-1 font-mono text-xs bg-muted/50 p-2 rounded border border-border">
+                {position.lng}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={copyLongitude}
+                className="px-3 text-xs"
+              >
+                <Copy size={14} />
+              </Button>
+            </div>
           </div>
         </div>
-
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={copyToClipboard}
-          className="w-full text-xs"
-        >
-          <Copy size={14} className="mr-2" />
-          {copied ? 'Copied!' : 'Copy'}
-        </Button>
 
         <p className="text-xs text-muted-foreground italic">
           Click map to update

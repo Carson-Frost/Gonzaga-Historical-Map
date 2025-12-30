@@ -3,7 +3,7 @@ import { CaretLeft, CaretRight } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
 import { AVAILABLE_YEARS } from '@/config'
 import { LOCATIONS, getLocationTimeline } from '@/config'
-import { ACTIVE_PROJECT, PROJECT_CONFIG } from '@/config/app'
+import { PROJECT_CONFIG } from '@/config/app'
 
 function LocationSection({
   location,
@@ -28,11 +28,19 @@ function LocationSection({
         </p>
       </div>
 
-      {/* Image Placeholder */}
+      {/* Image */}
       <div className="mb-4">
-        <div className="aspect-video bg-muted/20 rounded-lg border border-border flex items-center justify-center">
-          <p className="text-muted-foreground text-sm">No Image Found</p>
-        </div>
+        {timelineEntry?.images && timelineEntry.images.length > 0 ? (
+          <img
+            src={timelineEntry.images[0]}
+            alt={location.label}
+            className="aspect-video w-full object-cover rounded-lg border border-border"
+          />
+        ) : (
+          <div className="aspect-video bg-muted/20 rounded-lg border border-border flex items-center justify-center">
+            <p className="text-muted-foreground text-sm">No Image Found</p>
+          </div>
+        )}
       </div>
 
       {/* Description Section */}
@@ -120,7 +128,7 @@ export function Sidebar({
       {/* Fixed Header */}
       <div className="flex-shrink-0 px-8 py-6 border-b border-border bg-background/95 backdrop-blur-md z-10">
         <h1 className="text-4xl font-bold text-center mb-2 leading-tight">
-          {PROJECT_CONFIG[ACTIVE_PROJECT].title}<br />{PROJECT_CONFIG[ACTIVE_PROJECT].subtitle}
+          {PROJECT_CONFIG.title}<br />{PROJECT_CONFIG.subtitle}
         </h1>
         <p className="text-xs text-muted-foreground text-center uppercase tracking-wider">
           Scroll to explore locations

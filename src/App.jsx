@@ -22,7 +22,9 @@ function App() {
   useEffect(() => {
     const location = LOCATIONS[selectedLocationIndex]
     if (mapInstanceRef.current && location) {
-      mapInstanceRef.current.setView(location.position, mapInstanceRef.current.getZoom(), { animate: true })
+      // Use location-specific zoom if available, otherwise keep current zoom
+      const zoomLevel = location.zoom || mapInstanceRef.current.getZoom()
+      mapInstanceRef.current.setView(location.position, zoomLevel, { animate: true })
     }
   }, [selectedLocationIndex])
 

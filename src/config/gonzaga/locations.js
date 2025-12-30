@@ -1,30 +1,44 @@
 /**
- * Gonzaga locations with coordinates, markers, and timeline details
+ * Gonzaga locations loaded from Google Sheets
  *
- * Each location includes:
- * - id: Unique identifier
- * - position: [latitude, longitude]
- * - label: Marker title
- * - yearRange: [startYear, endYear] - when this location should be visible
- * - timeline: Array of time periods with images and descriptions
+ * Data is fetched and transformed from published Google Sheets CSV
  */
-export const GONZAGA_LOCATIONS = [
-  // Add locations here
-  // Example:
-  // {
-  //   id: 1,
-  //   position: [47.6676, -117.4032],
-  //   label: "Example Location",
-  //   yearRange: [2025, 2025],
-  //   timeline: [
-  //     {
-  //       yearRange: [2025, 2025],
-  //       images: [],
-  //       description: ""
-  //     }
-  //   ]
-  // },
-]
+import { fetchSheetData, transformSheetData } from '@/lib/googleSheetsLoader'
+
+// Cached locations data
+let cachedLocations = null
+let loadingPromise = null
+
+/**
+ * Load locations from Google Sheets
+ *
+ * @returns {Promise<Array>} Locations array
+ */
+async function loadLocations() {
+  if (cachedLocations) {
+    return cachedLocations
+  }
+
+  if (loadingPromise) {
+    return loadingPromise
+  }
+
+  loadingPromise = (async () => {
+    try {
+      const sheetData = await fetchSheetData()
+      cachedLocations = transformSheetData(sheetData)
+      return cachedLocations
+    } catch (error) {
+      console.error('Failed to load locations from Google Sheets:', error)
+      return []
+    }
+  })()
+
+  return loadingPromise
+}
+
+// Export as a promise that resolves to locations
+export const GONZAGA_LOCATIONS = await loadLocations()
 
 /**
  * Filter locations based on the selected year

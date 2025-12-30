@@ -8,7 +8,7 @@ export const DEFAULT_ZOOM = 15
 
 // Zoom level constraints
 export const MIN_ZOOM = 15
-export const MAX_ZOOM = 17
+export const MAX_ZOOM = 20
 
 // Geographic boundaries constraining map panning
 // Format: [[southwestLat, southwestLng], [northeastLat, northeastLng]]
