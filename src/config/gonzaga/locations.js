@@ -5,20 +5,17 @@
  */
 import { fetchSheetData, transformSheetData } from '@/lib/googleSheetsLoader'
 
-// Cached locations data
-let cachedLocations = null
+// Loading promise to prevent concurrent fetches
 let loadingPromise = null
 
 /**
  * Load locations from Google Sheets
  *
+ * Uses cache-busting in fetchSheetData to get fresh data on each page load
+ *
  * @returns {Promise<Array>} Locations array
  */
 async function loadLocations() {
-  if (cachedLocations) {
-    return cachedLocations
-  }
-
   if (loadingPromise) {
     return loadingPromise
   }
@@ -26,10 +23,8 @@ async function loadLocations() {
   loadingPromise = (async () => {
     try {
       const sheetData = await fetchSheetData()
-      cachedLocations = transformSheetData(sheetData)
-      return cachedLocations
+      return transformSheetData(sheetData)
     } catch (error) {
-      console.error('Failed to load locations from Google Sheets:', error)
       return []
     }
   })()
@@ -41,36 +36,31 @@ async function loadLocations() {
 export const GONZAGA_LOCATIONS = await loadLocations()
 
 /**
- * Filter locations based on the selected year
+ * Filter locations based on the selected year label
  *
  * @param {Array} locations - Array of location objects
- * @param {number} year - Selected year
- * @returns {Array} - Filtered locations that are visible for that year
+ * @param {string} yearLabel - Selected year label
+ * @returns {Array} - Filtered locations that have data for that year label
  */
-export function getVisibleLocations(locations, year) {
+export function getVisibleLocations(locations, yearLabel) {
   return locations.filter(location => {
-    // If no yearRange specified, always show
-    if (!location.yearRange) return true
+    // If no timeline, don't show
+    if (!location.timeline || location.timeline.length === 0) return false
 
-    const [startYear, endYear] = location.yearRange
-    return year >= startYear && year <= endYear
+    // Check if location has timeline entry for this year label
+    return location.timeline.some(entry => entry.yearLabel === yearLabel)
   })
 }
 
 /**
- * Get timeline details for a specific location and year
+ * Get timeline details for a specific location and year label
  *
  * @param {Object} location - Location object
- * @param {number} year - Selected year
- * @returns {Object|null} - Timeline entry for that year, or null if not found
+ * @param {string} yearLabel - Selected year label
+ * @returns {Object|null} Timeline entry for that year label, or null if not found
  */
-export function getLocationTimeline(location, year) {
+export function getLocationTimeline(location, yearLabel) {
   if (!location.timeline) return null
 
-  const timelineEntry = location.timeline.find(entry => {
-    const [startYear, endYear] = entry.yearRange
-    return year >= startYear && year <= endYear
-  })
-
-  return timelineEntry || null
+  return location.timeline.find(entry => entry.yearLabel === yearLabel) || null
 }

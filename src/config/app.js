@@ -1,12 +1,2 @@
-/**
- * Application-level configuration
- */
-
-// Development mode - enables debugging tools
+// Development mode - enables coordinate tool
 export const DEV_MODE = true
-
-// Project metadata
-export const PROJECT_CONFIG = {
-  title: 'Gonzaga',
-  subtitle: 'Through Time'
-}

@@ -1,10 +1,8 @@
 // Map configuration and restrictions - GONZAGA
 
-// Center point coordinates for Gonzaga University campus
+// Default center and zoom - overridden dynamically in Map component
 export const MAP_CENTER = [47.6676, -117.4032]
-
-// Default zoom level for initial map view
-export const DEFAULT_ZOOM = 15
+export const DEFAULT_ZOOM = 16
 
 // Zoom level constraints
 export const MIN_ZOOM = 15

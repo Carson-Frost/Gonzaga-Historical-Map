@@ -1,15 +1,8 @@
 import React from 'react'
 import { MapContainer, TileLayer, ImageOverlay, ZoomControl, useMap, Marker } from 'react-leaflet'
-import { CircleNotch } from '@phosphor-icons/react'
+import { Loader2 } from 'lucide-react'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
-import { loadExtraMarkers } from '@/lib/extraMarkers'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import {
   MAP_BOUNDS,
   getMapImagePath,
@@ -26,7 +19,7 @@ import {
 import { MapClickListener, DevCoordinatePanel } from '@/components/DevCoordinatePicker'
 import { DEV_MODE } from '@/config/app'
 
-// Fix for default marker icons in React-Leaflet
+// Default marker icon URLs for React-Leaflet
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
@@ -34,25 +27,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 })
 
-// Custom marker component
-function MarkerWithTooltip({ position, icon, label, onClick, markerId, setHoveredMarker }) {
-  const markerRef = React.useRef(null)
-
-  return (
-    <Marker
-      ref={markerRef}
-      position={position}
-      icon={icon}
-      eventHandlers={{
-        click: onClick,
-        mouseover: () => setHoveredMarker({ id: markerId, label, position }),
-        mouseout: () => setHoveredMarker(null)
-      }}
-    />
-  )
-}
-
-// Tooltip overlay component
 function TooltipOverlay({ hoveredMarker }) {
   const map = useMap()
   const [tooltipPosition, setTooltipPosition] = React.useState(null)
@@ -66,7 +40,6 @@ function TooltipOverlay({ hoveredMarker }) {
     const point = map.latLngToContainerPoint(hoveredMarker.position)
     setTooltipPosition({ x: point.x, y: point.y })
 
-    // Update position on map move
     const updatePosition = () => {
       const newPoint = map.latLngToContainerPoint(hoveredMarker.position)
       setTooltipPosition({ x: newPoint.x, y: newPoint.y })
@@ -92,12 +65,11 @@ function TooltipOverlay({ hoveredMarker }) {
         pointerEvents: 'none',
         zIndex: 1000,
         transform: 'translate(-50%, -100%)',
-        marginTop: '-50px', // Pin height (50px) + smaller gap
+        marginTop: '-50px',
       }}
     >
-      <div className="bg-popover text-popover-foreground px-3 py-2 rounded-lg border border-border shadow-md relative">
+      <div className="bg-popover text-popover-foreground px-3 py-2 rounded-lg border shadow-md relative" style={{ borderColor: '#052346' }}>
         <h3 className="font-semibold text-base">{hoveredMarker.label}</h3>
-        {/* Caret arrow pointing down */}
         <div
           className="absolute left-1/2 -translate-x-1/2"
           style={{
@@ -109,7 +81,6 @@ function TooltipOverlay({ hoveredMarker }) {
             borderTop: '8px solid oklch(var(--popover))',
           }}
         />
-        {/* Caret border */}
         <div
           className="absolute left-1/2 -translate-x-1/2"
           style={{
@@ -118,7 +89,7 @@ function TooltipOverlay({ hoveredMarker }) {
             height: 0,
             borderLeft: '9px solid transparent',
             borderRight: '9px solid transparent',
-            borderTop: '9px solid oklch(var(--border))',
+            borderTop: '9px solid #052346',
             zIndex: -1,
           }}
         />
@@ -127,11 +98,9 @@ function TooltipOverlay({ hoveredMarker }) {
   )
 }
 
-// Component to handle dynamic zoom constraints and container resizing
 function MapController({ onMapReady }) {
   const map = useMap()
 
-  // Pass map instance to parent component
   React.useEffect(() => {
     if (onMapReady) {
       onMapReady(map)
@@ -139,20 +108,14 @@ function MapController({ onMapReady }) {
   }, [map, onMapReady])
 
   React.useEffect(() => {
-    // Calculate dynamic minimum zoom based on container size and bounds
     const calculateMinZoom = () => {
       const container = map.getContainer()
       const containerWidth = container.offsetWidth
       const containerHeight = container.offsetHeight
-
-      // Get the bounds in LatLng
       const bounds = L.latLngBounds(MAX_BOUNDS)
 
-      // Calculate optimal zoom level to fit bounds within container
-      // Ensures bounds fill viewport completely, preventing empty space
       let optimalZoom = MIN_ZOOM
 
-      // Try different zoom levels to find one where bounds fill the container
       for (let zoom = MIN_ZOOM; zoom <= MAX_ZOOM; zoom += 0.5) {
         const boundsSize = map.project(bounds.getNorthEast(), zoom)
           .subtract(map.project(bounds.getSouthWest(), zoom))
@@ -160,43 +123,30 @@ function MapController({ onMapReady }) {
         const boundsWidth = Math.abs(boundsSize.x)
         const boundsHeight = Math.abs(boundsSize.y)
 
-        // If bounds are larger than container at this zoom, optimal minimum is found
         if (boundsWidth >= containerWidth && boundsHeight >= containerHeight) {
           optimalZoom = zoom
           break
         }
       }
 
-      // Set the new minimum zoom
       map.setMinZoom(optimalZoom)
 
-      // If current zoom is less than new minimum, zoom to fit bounds
       if (map.getZoom() < optimalZoom) {
         map.fitBounds(MAX_BOUNDS, { animate: false, padding: [20, 20] })
       }
     }
 
-    // Handle container resize
     const handleResize = () => {
-      // Notify Leaflet of container size change
       map.invalidateSize()
-
-      // Recalculate minimum zoom for new container size
       calculateMinZoom()
     }
 
-    // Set up ResizeObserver to watch container size changes
     const container = map.getContainer()
-    const resizeObserver = new ResizeObserver(() => {
-      handleResize()
-    })
-
+    const resizeObserver = new ResizeObserver(handleResize)
     resizeObserver.observe(container)
 
-    // Initial calculation
     calculateMinZoom()
 
-    // Cleanup
     return () => {
       resizeObserver.disconnect()
     }
@@ -213,10 +163,12 @@ export function Map({ selectedYear, onMapReady, setSelectedLocation }) {
   const [preloadTotal, setPreloadTotal] = React.useState(0)
   const [hoveredMarker, setHoveredMarker] = React.useState(null)
   const [devPosition, setDevPosition] = React.useState(null)
-  const [extraMarkersReady, setExtraMarkersReady] = React.useState(false)
   const mapInstanceRef = React.useRef(null)
 
-  // Store map instance when ready
+  const firstLocation = LOCATIONS[0]
+  const initialCenter = firstLocation?.position || MAP_CENTER
+  const initialZoom = firstLocation?.zoom || DEFAULT_ZOOM
+
   const handleMapReady = React.useCallback((map) => {
     mapInstanceRef.current = map
     if (onMapReady) {
@@ -224,61 +176,46 @@ export function Map({ selectedYear, onMapReady, setSelectedLocation }) {
     }
   }, [onMapReady])
 
-  // Get visible locations for the current year
   const visibleLocations = React.useMemo(() => {
     return getVisibleLocations(LOCATIONS, displayedYear)
   }, [displayedYear])
 
-  // Handle marker click: open carousel and center on marker
   const handleMarkerClick = React.useCallback((markerId, position) => {
-    // Find the index of this marker in LOCATIONS
     const markerIndex = LOCATIONS.findIndex(loc => loc.id === markerId)
+
     if (markerIndex !== -1) {
       setSelectedLocation(markerIndex)
     }
 
-    // Center map on the marker
     if (mapInstanceRef.current) {
       mapInstanceRef.current.setView(position, mapInstanceRef.current.getZoom(), { animate: true })
     }
   }, [setSelectedLocation])
 
-  // Load ExtraMarkers plugin on mount
+  // Preload all historical map images
   React.useEffect(() => {
-    loadExtraMarkers()
-      .then(() => {
-        setExtraMarkersReady(true)
-      })
-      .catch((error) => {
-        console.error('Failed to load ExtraMarkers:', error)
-      })
-  }, [])
+    const yearLabelsWithMaps = Object.keys(MAP_BOUNDS)
+    setPreloadTotal(yearLabelsWithMaps.length)
 
-  // Preload ALL images on mount
-  React.useEffect(() => {
-    const yearsToPreload = Object.keys(MAP_BOUNDS).filter(year => getMapImagePath(year))
-    setPreloadTotal(yearsToPreload.length)
-
-    if (yearsToPreload.length === 0) {
+    if (yearLabelsWithMaps.length === 0) {
       setIsPreloading(false)
       return
     }
 
     let loadedCount = 0
-    const promises = yearsToPreload.map(year => {
+    const promises = yearLabelsWithMaps.map(yearLabel => {
       return new Promise((resolve, reject) => {
         const img = new Image()
-        img.src = getMapImagePath(year)
+        img.src = getMapImagePath(yearLabel)
         img.onload = () => {
           loadedCount++
           setPreloadProgress(loadedCount)
           resolve()
         }
         img.onerror = () => {
-          console.error(`Failed to preload map for ${year}`)
           loadedCount++
           setPreloadProgress(loadedCount)
-          reject(new Error(`Failed to load ${year}`))
+          reject(new Error(`Failed to load ${yearLabel}`))
         }
       })
     })
@@ -288,23 +225,25 @@ export function Map({ selectedYear, onMapReady, setSelectedLocation }) {
     })
   }, [])
 
-  // Handle year changes with instant transitions (images already loaded)
+  // Crossfade transition when year changes
   React.useEffect(() => {
-    if (isPreloading) return
-    if (selectedYear === displayedYear) return
+    if (isPreloading || selectedYear === displayedYear) return
 
-    setPreviousYear(displayedYear !== 2025 ? displayedYear : null)
+    if (getMapImagePath(displayedYear)) {
+      setPreviousYear(displayedYear)
+    }
+
     setDisplayedYear(selectedYear)
-    // Remove previous year after transition delay
-    setTimeout(() => setPreviousYear(null), TRANSITION_DELAY)
+
+    const timeoutId = setTimeout(() => setPreviousYear(null), TRANSITION_DELAY)
+    return () => clearTimeout(timeoutId)
   }, [selectedYear, displayedYear, isPreloading])
 
-  // Show loading screen while preloading all maps
   if (isPreloading) {
     return (
       <div className="h-full w-full flex items-center justify-center bg-muted/20">
         <div className="text-center space-y-4">
-          <CircleNotch size={48} weight="duotone" className="animate-spin mx-auto text-primary" />
+          <Loader2 size={48} className="animate-spin mx-auto text-primary" />
           <h2 className="text-xl font-semibold">
             Loading Historical Maps
           </h2>
@@ -327,8 +266,8 @@ export function Map({ selectedYear, onMapReady, setSelectedLocation }) {
       )}
 
       <MapContainer
-      center={MAP_CENTER}
-      zoom={DEFAULT_ZOOM}
+      center={initialCenter}
+      zoom={initialZoom}
       minZoom={MIN_ZOOM}
       maxZoom={MAX_ZOOM}
       maxBounds={MAX_BOUNDS}
@@ -347,10 +286,13 @@ export function Map({ selectedYear, onMapReady, setSelectedLocation }) {
 
       {/* Modern base map - always visible */}
       <TileLayer
-        attribution='&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://tiles.stadiamaps.com/tiles/stamen_toner_lite/{z}/{x}/{y}{r}.png"
+        attribution='&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        url="https://tiles.stadiamaps.com/tiles/alidade_bright/{z}/{x}/{y}{r}.png"
         minZoom={0}
         maxZoom={20}
+        bounds={MAX_BOUNDS}
+        keepBuffer={20}
+        updateWhenIdle={true}
       />
 
       {/* Previous historical map overlay - fading out */}
@@ -360,7 +302,7 @@ export function Map({ selectedYear, onMapReady, setSelectedLocation }) {
           url={getMapImagePath(previousYear)}
           bounds={MAP_BOUNDS[previousYear]}
           opacity={1.0}
-          zIndex={400}
+          interactive={false}
         />
       )}
 
@@ -371,27 +313,18 @@ export function Map({ selectedYear, onMapReady, setSelectedLocation }) {
           url={getMapImagePath(displayedYear)}
           bounds={MAP_BOUNDS[displayedYear]}
           opacity={1.0}
-          zIndex={500}
+          interactive={false}
         />
       )}
 
-      {/* Historical markers - visible based on year */}
-      {extraMarkersReady && visibleLocations.map((location, index) => {
-        // Create numbered marker using ExtraMarkers (same as storymaps template)
-        const icon = L.ExtraMarkers.icon({
-          icon: 'fa-number',
-          number: index + 1,
-          markerColor: 'blue',
-          shape: 'circle',
-          prefix: 'fa'
-        })
-
+      {/* Location markers visible for current year */}
+      {visibleLocations.filter(loc => loc.showPin).map(location => {
         return (
           <Marker
             key={location.id}
             position={location.position}
-            icon={icon}
             opacity={0.9}
+            zIndexOffset={1000}
             eventHandlers={{
               click: () => handleMarkerClick(location.id, location.position),
               mouseover: () => setHoveredMarker({ id: location.id, label: location.label, position: location.position }),

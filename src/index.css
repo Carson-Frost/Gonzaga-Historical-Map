@@ -1,98 +1,45 @@
-/* Import Google Fonts for Notebook Theme */
-@import url('https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Fira+Code:wght@300..700&display=swap');
-
-/* Import Font Awesome for ExtraMarkers icons */
-@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css');
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Fira+Code:wght@300..700&family=Cormorant+SC&display=swap');
 
 /* Import Leaflet CSS */
 @import 'leaflet/dist/leaflet.css';
-
-/* Import Leaflet ExtraMarkers CSS */
-@import url('/libs/extra-markers/leaflet.extra-markers.min.css');
 
 /* Import Tailwind */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Notebook Theme - CSS Variables */
+/* Navy Blue & White Theme - CSS Variables */
 @layer base {
   :root {
-    /* Light Mode - Notebook Theme */
-    --background: 98.21% 0 0;
-    --foreground: 34.85% 0 0;
+    --background: 100% 0 0;
+    --foreground: 19.5% 0.055 252;
     --card: 100% 0 0;
-    --card-foreground: 34.85% 0 0;
+    --card-foreground: 19.5% 0.055 252;
     --popover: 100% 0 0;
-    --popover-foreground: 34.85% 0 0;
-    --primary: 48.91% 0 0;
-    --primary-foreground: 95.51% 0 0;
-    --secondary: 90.06% 0 0;
-    --secondary-foreground: 34.85% 0 0;
-    --muted: 91.58% 0 0;
-    --muted-foreground: 43.13% 0 0;
-    --accent: 93.54% 0.0456 94.8549;
-    --accent-foreground: 40.15% 0.0436 37.9587;
+    --popover-foreground: 19.5% 0.055 252;
+    --primary: 19.5% 0.055 252;
+    --primary-foreground: 100% 0 0;
+    --secondary: 95% 0.01 252;
+    --secondary-foreground: 19.5% 0.055 252;
+    --muted: 96% 0.005 252;
+    --muted-foreground: 55% 0.035 252;
+    --accent: 85% 0.02 252;
+    --accent-foreground: 19.5% 0.055 252;
     --destructive: 66.27% 0.0978 20.0041;
     --destructive-foreground: 100% 0 0;
-    --border: 55.38% 0.0025 17.2320;
+    --border: 35% 0.04 252;
     --input: 100% 0 0;
-    --ring: 70.58% 0 0;
+    --ring: 19.5% 0.055 252;
     --radius: 0.625rem;
-    --chart-1: 32.11% 0 0;
-    --chart-2: 47.22% 0 0;
-    --chart-3: 58.98% 0 0;
-    --chart-4: 70.58% 0 0;
-    --chart-5: 79.21% 0 0;
-    --sidebar-background: 95.51% 0 0;
-    --sidebar-foreground: 34.85% 0 0;
-    --sidebar-primary: 48.91% 0 0;
-    --sidebar-primary-foreground: 95.51% 0 0;
-    --sidebar-accent: 93.54% 0.0456 94.8549;
-    --sidebar-accent-foreground: 40.15% 0.0436 37.9587;
-    --sidebar-border: 55.38% 0.0025 17.2320;
-    --sidebar-ring: 70.58% 0 0;
-
-    /* Map Pin Colors */
-    --map-pin-fill: #ffffff;
-    --map-pin-stroke: #334155;
-    --map-pin-icon: #334155;
-  }
-
-  .dark {
-    /* Dark Mode - Notebook Theme */
-    --background: 28.91% 0 0;
-    --foreground: 89.45% 0 0;
-    --card: 32.11% 0 0;
-    --card-foreground: 89.45% 0 0;
-    --popover: 32.11% 0 0;
-    --popover-foreground: 89.45% 0 0;
-    --primary: 75.72% 0 0;
-    --primary-foreground: 32.11% 0 0;
-    --secondary: 38.14% 0 0;
-    --secondary-foreground: 89.45% 0 0;
-    --muted: 38.14% 0 0;
-    --muted-foreground: 66.51% 0 0;
-    --accent: 90.67% 0 0;
-    --accent-foreground: 32.11% 0 0;
-    --destructive: 79.15% 0.0491 18.2410;
-    --destructive-foreground: 32.11% 0 0;
-    --border: 45.65% 0 0;
-    --input: 45.65% 0 0;
-    --ring: 90.67% 0 0;
-    --chart-1: 95.21% 0 0;
-    --chart-2: 78.45% 0 0;
-    --chart-3: 66.27% 0 0;
-    --chart-4: 58.98% 0 0;
-    --chart-5: 54.52% 0 0;
-    --sidebar-background: 24.78% 0 0;
-    --sidebar-foreground: 89.45% 0 0;
-    --sidebar-primary: 75.72% 0 0;
-    --sidebar-primary-foreground: 32.11% 0 0;
-    --sidebar-accent: 90.67% 0 0;
-    --sidebar-accent-foreground: 32.11% 0 0;
-    --sidebar-border: 45.65% 0 0;
-    --sidebar-ring: 90.67% 0 0;
+    --sidebar-background: 19.5% 0.055 252;
+    --sidebar-foreground: 100% 0 0;
+    --sidebar-primary: 100% 0 0;
+    --sidebar-primary-foreground: 19.5% 0.055 252;
+    --sidebar-accent: 35% 0.045 252;
+    --sidebar-accent-foreground: 100% 0 0;
+    --sidebar-border: 35% 0.045 252;
+    --sidebar-ring: 100% 0 0;
   }
 }
 
@@ -108,10 +55,4 @@
     letter-spacing: 0.5px;
     font-family: Georgia, serif;
   }
-}
-
-/* Timeline scroll-snap sections */
-.timeline-section {
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
 }

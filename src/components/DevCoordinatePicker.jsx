@@ -10,8 +10,13 @@ import { Button } from '@/components/ui/button'
 export function MapClickListener({ onPositionClick }) {
   useMapEvents({
     click(e) {
+      // Ignore clicks on markers - only handle clicks on the map itself
+      if (e.originalEvent.target.closest('.leaflet-marker-icon, .leaflet-marker-pane, .awesome-marker')) {
+        return
+      }
+
       const { lat, lng } = e.latlng
-      onPositionClick({ lat: lat.toFixed(4), lng: lng.toFixed(4) })
+      onPositionClick({ lat: lat.toFixed(6), lng: lng.toFixed(6) })
     },
   })
 
@@ -45,7 +50,7 @@ export function DevCoordinatePanel({ position, onClose }) {
   if (!position) return null
 
   return (
-    <div className="absolute bottom-6 right-6 z-[1100] bg-background/95 backdrop-blur-md border border-border rounded-lg shadow-lg p-4 w-72">
+    <div className="absolute bottom-6 right-6 z-[1100] bg-background/95 backdrop-blur-md border rounded-lg shadow-lg p-4 w-72" style={{ borderColor: '#052346' }}>
       <div className="flex items-start justify-between mb-3">
         <h3 className="text-xs font-semibold uppercase tracking-wider">Dev Tools</h3>
         <button
@@ -62,7 +67,7 @@ export function DevCoordinatePanel({ position, onClose }) {
           <div>
             <p className="text-xs text-muted-foreground mb-1">Latitude</p>
             <div className="flex gap-2">
-              <div className="flex-1 font-mono text-xs bg-muted/50 p-2 rounded border border-border">
+              <div className="flex-1 font-mono text-xs bg-muted/50 p-2 rounded border" style={{ borderColor: '#052346' }}>
                 {position.lat}
               </div>
               <Button
@@ -79,7 +84,7 @@ export function DevCoordinatePanel({ position, onClose }) {
           <div>
             <p className="text-xs text-muted-foreground mb-1">Longitude</p>
             <div className="flex gap-2">
-              <div className="flex-1 font-mono text-xs bg-muted/50 p-2 rounded border border-border">
+              <div className="flex-1 font-mono text-xs bg-muted/50 p-2 rounded border" style={{ borderColor: '#052346' }}>
                 {position.lng}
               </div>
               <Button

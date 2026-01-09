@@ -51,13 +51,6 @@ export default {
         border: 'oklch(var(--border))',
         input: 'oklch(var(--input))',
         ring: 'oklch(var(--ring))',
-        chart: {
-          '1': 'oklch(var(--chart-1))',
-          '2': 'oklch(var(--chart-2))',
-          '3': 'oklch(var(--chart-3))',
-          '4': 'oklch(var(--chart-4))',
-          '5': 'oklch(var(--chart-5))'
-        },
         sidebar: {
           DEFAULT: 'oklch(var(--sidebar-background))',
           foreground: 'oklch(var(--sidebar-foreground))',
