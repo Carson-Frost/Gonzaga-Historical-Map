@@ -13,8 +13,7 @@ import {
   MAX_BOUNDS,
   MAX_BOUNDS_VISCOSITY,
   TRANSITION_DELAY,
-  LOCATIONS,
-  getVisibleLocations
+  CHAPTERS
 } from '@/config'
 import { MapClickListener, DevCoordinatePanel } from '@/components/DevCoordinatePicker'
 import { DEV_MODE } from '@/config/app'
@@ -26,6 +25,35 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 })
+
+// Available marker colors from leaflet-color-markers
+const MARKER_COLORS = ['blue', 'gold', 'red', 'green', 'orange', 'yellow', 'violet', 'grey', 'black']
+const SHADOW_URL = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png'
+
+// Cache for colored icons
+const iconCache = {}
+
+/**
+ * Get a colored marker icon
+ * @param {string} color - Color name (blue, gold, red, green, orange, yellow, violet, grey, black)
+ */
+function getColoredIcon(color) {
+  const colorName = (color || 'blue').toLowerCase()
+  const validColor = MARKER_COLORS.includes(colorName) ? colorName : 'blue'
+
+  if (!iconCache[validColor]) {
+    iconCache[validColor] = new L.Icon({
+      iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${validColor}.png`,
+      shadowUrl: SHADOW_URL,
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      popupAnchor: [1, -34],
+      shadowSize: [41, 41]
+    })
+  }
+
+  return iconCache[validColor]
+}
 
 function TooltipOverlay({ hoveredMarker }) {
   const map = useMap()
@@ -155,9 +183,13 @@ function MapController({ onMapReady }) {
   return null
 }
 
-export function Map({ selectedYear, onMapReady, setSelectedLocation }) {
-  const [displayedYear, setDisplayedYear] = React.useState(selectedYear)
-  const [previousYear, setPreviousYear] = React.useState(null)
+export function Map({ selectedChapterIndex, selectedLocationIndex, onMapReady, setSelectedChapter }) {
+  const currentChapter = CHAPTERS[selectedChapterIndex]
+  const currentLocation = currentChapter?.locations?.[selectedLocationIndex]
+  const currentTimePeriod = currentLocation?.timePeriod
+
+  const [displayedTimePeriod, setDisplayedTimePeriod] = React.useState(currentTimePeriod)
+  const [previousTimePeriod, setPreviousTimePeriod] = React.useState(null)
   const [isPreloading, setIsPreloading] = React.useState(true)
   const [preloadProgress, setPreloadProgress] = React.useState(0)
   const [preloadTotal, setPreloadTotal] = React.useState(0)
@@ -165,9 +197,10 @@ export function Map({ selectedYear, onMapReady, setSelectedLocation }) {
   const [devPosition, setDevPosition] = React.useState(null)
   const mapInstanceRef = React.useRef(null)
 
-  const firstLocation = LOCATIONS[0]
-  const initialCenter = firstLocation?.position || MAP_CENTER
-  const initialZoom = firstLocation?.zoom || DEFAULT_ZOOM
+  // Initial map position from first chapter
+  const firstChapter = CHAPTERS[0]
+  const initialCenter = firstChapter?.position || MAP_CENTER
+  const initialZoom = firstChapter?.zoom || DEFAULT_ZOOM
 
   const handleMapReady = React.useCallback((map) => {
     mapInstanceRef.current = map
@@ -176,37 +209,53 @@ export function Map({ selectedYear, onMapReady, setSelectedLocation }) {
     }
   }, [onMapReady])
 
-  const visibleLocations = React.useMemo(() => {
-    return getVisibleLocations(LOCATIONS, displayedYear)
-  }, [displayedYear])
+  // Get visible markers - chapters with pins enabled for current time period
+  const visibleMarkers = React.useMemo(() => {
+    return CHAPTERS.map((chapter, index) => {
+      // Find location for current time period
+      const locationForTimePeriod = chapter.locations.find(
+        loc => loc.timePeriod === currentTimePeriod
+      )
 
-  const handleMarkerClick = React.useCallback((markerId, position) => {
-    const markerIndex = LOCATIONS.findIndex(loc => loc.id === markerId)
+      if (!locationForTimePeriod) return null
 
-    if (markerIndex !== -1) {
-      setSelectedLocation(markerIndex)
-    }
+      // Use resolved values (location override > chapter default)
+      const showPin = locationForTimePeriod.resolvedPin
+      if (!showPin) return null
+
+      return {
+        chapterIndex: index,
+        chapter: chapter.chapter,
+        position: [locationForTimePeriod.resolvedLatitude, locationForTimePeriod.resolvedLongitude],
+        pinColor: locationForTimePeriod.resolvedPinColor || '#3B82F6',
+        label: locationForTimePeriod.title || chapter.chapter
+      }
+    }).filter(Boolean)
+  }, [currentTimePeriod])
+
+  const handleMarkerClick = React.useCallback((chapterIndex, position) => {
+    setSelectedChapter(chapterIndex)
 
     if (mapInstanceRef.current) {
       mapInstanceRef.current.setView(position, mapInstanceRef.current.getZoom(), { animate: true })
     }
-  }, [setSelectedLocation])
+  }, [setSelectedChapter])
 
   // Preload all historical map images
   React.useEffect(() => {
-    const yearLabelsWithMaps = Object.keys(MAP_BOUNDS)
-    setPreloadTotal(yearLabelsWithMaps.length)
+    const timePeriodsWithMaps = Object.keys(MAP_BOUNDS)
+    setPreloadTotal(timePeriodsWithMaps.length)
 
-    if (yearLabelsWithMaps.length === 0) {
+    if (timePeriodsWithMaps.length === 0) {
       setIsPreloading(false)
       return
     }
 
     let loadedCount = 0
-    const promises = yearLabelsWithMaps.map(yearLabel => {
+    const promises = timePeriodsWithMaps.map(timePeriod => {
       return new Promise((resolve, reject) => {
         const img = new Image()
-        img.src = getMapImagePath(yearLabel)
+        img.src = getMapImagePath(timePeriod)
         img.onload = () => {
           loadedCount++
           setPreloadProgress(loadedCount)
@@ -215,7 +264,7 @@ export function Map({ selectedYear, onMapReady, setSelectedLocation }) {
         img.onerror = () => {
           loadedCount++
           setPreloadProgress(loadedCount)
-          reject(new Error(`Failed to load ${yearLabel}`))
+          reject(new Error(`Failed to load ${timePeriod}`))
         }
       })
     })
@@ -225,19 +274,31 @@ export function Map({ selectedYear, onMapReady, setSelectedLocation }) {
     })
   }, [])
 
-  // Crossfade transition when year changes
+  // Crossfade transition when time period changes
   React.useEffect(() => {
-    if (isPreloading || selectedYear === displayedYear) return
+    if (isPreloading || currentTimePeriod === displayedTimePeriod) return
 
-    if (getMapImagePath(displayedYear)) {
-      setPreviousYear(displayedYear)
+    if (getMapImagePath(displayedTimePeriod)) {
+      setPreviousTimePeriod(displayedTimePeriod)
     }
 
-    setDisplayedYear(selectedYear)
+    setDisplayedTimePeriod(currentTimePeriod)
 
-    const timeoutId = setTimeout(() => setPreviousYear(null), TRANSITION_DELAY)
+    const timeoutId = setTimeout(() => setPreviousTimePeriod(null), TRANSITION_DELAY)
     return () => clearTimeout(timeoutId)
-  }, [selectedYear, displayedYear, isPreloading])
+  }, [currentTimePeriod, displayedTimePeriod, isPreloading])
+
+  // Center map on chapter when it changes
+  React.useEffect(() => {
+    if (!mapInstanceRef.current || !currentChapter) return
+
+    const location = currentLocation
+    if (location) {
+      const position = [location.resolvedLatitude, location.resolvedLongitude]
+      const zoom = location.resolvedZoom || mapInstanceRef.current.getZoom()
+      mapInstanceRef.current.setView(position, zoom, { animate: true })
+    }
+  }, [selectedChapterIndex, selectedLocationIndex, currentChapter, currentLocation])
 
   if (isPreloading) {
     return (
@@ -266,74 +327,77 @@ export function Map({ selectedYear, onMapReady, setSelectedLocation }) {
       )}
 
       <MapContainer
-      center={initialCenter}
-      zoom={initialZoom}
-      minZoom={MIN_ZOOM}
-      maxZoom={MAX_ZOOM}
-      maxBounds={MAX_BOUNDS}
-      maxBoundsViscosity={MAX_BOUNDS_VISCOSITY}
-      zoomControl={false}
-      className="h-full w-full z-0"
-    >
-      <MapController onMapReady={handleMapReady} />
-      <ZoomControl position="bottomleft" />
-      <TooltipOverlay hoveredMarker={hoveredMarker} />
+        center={initialCenter}
+        zoom={initialZoom}
+        minZoom={MIN_ZOOM}
+        maxZoom={MAX_ZOOM}
+        maxBounds={MAX_BOUNDS}
+        maxBoundsViscosity={MAX_BOUNDS_VISCOSITY}
+        zoomControl={false}
+        className="h-full w-full z-0"
+      >
+        <MapController onMapReady={handleMapReady} />
+        <ZoomControl position="bottomleft" />
+        <TooltipOverlay hoveredMarker={hoveredMarker} />
 
-      {/* Dev click listener - renders INSIDE the map */}
-      {DEV_MODE && (
-        <MapClickListener onPositionClick={setDevPosition} />
-      )}
+        {/* Dev click listener - renders INSIDE the map */}
+        {DEV_MODE && (
+          <MapClickListener onPositionClick={setDevPosition} />
+        )}
 
-      {/* Modern base map - always visible */}
-      <TileLayer
-        attribution='&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://tiles.stadiamaps.com/tiles/alidade_bright/{z}/{x}/{y}{r}.png"
-        minZoom={0}
-        maxZoom={20}
-        bounds={MAX_BOUNDS}
-        keepBuffer={20}
-        updateWhenIdle={true}
-      />
-
-      {/* Previous historical map overlay - fading out */}
-      {previousYear && getMapImagePath(previousYear) && (
-        <ImageOverlay
-          key={`prev-${previousYear}`}
-          url={getMapImagePath(previousYear)}
-          bounds={MAP_BOUNDS[previousYear]}
-          opacity={1.0}
-          interactive={false}
+        {/* Modern base map - always visible */}
+        <TileLayer
+          attribution='&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://tiles.stadiamaps.com/tiles/alidade_bright/{z}/{x}/{y}{r}.png"
+          minZoom={0}
+          maxZoom={20}
+          bounds={MAX_BOUNDS}
+          keepBuffer={20}
+          updateWhenIdle={true}
         />
-      )}
 
-      {/* Current historical map overlay - on top */}
-      {getMapImagePath(displayedYear) && (
-        <ImageOverlay
-          key={displayedYear}
-          url={getMapImagePath(displayedYear)}
-          bounds={MAP_BOUNDS[displayedYear]}
-          opacity={1.0}
-          interactive={false}
-        />
-      )}
+        {/* Previous historical map overlay - fading out */}
+        {previousTimePeriod && getMapImagePath(previousTimePeriod) && (
+          <ImageOverlay
+            key={`prev-${previousTimePeriod}`}
+            url={getMapImagePath(previousTimePeriod)}
+            bounds={MAP_BOUNDS[previousTimePeriod]}
+            opacity={1.0}
+            interactive={false}
+          />
+        )}
 
-      {/* Location markers visible for current year */}
-      {visibleLocations.filter(loc => loc.showPin).map(location => {
-        return (
+        {/* Current historical map overlay - on top */}
+        {displayedTimePeriod && getMapImagePath(displayedTimePeriod) && (
+          <ImageOverlay
+            key={displayedTimePeriod}
+            url={getMapImagePath(displayedTimePeriod)}
+            bounds={MAP_BOUNDS[displayedTimePeriod]}
+            opacity={1.0}
+            interactive={false}
+          />
+        )}
+
+        {/* Location markers */}
+        {visibleMarkers.map(marker => (
           <Marker
-            key={location.id}
-            position={location.position}
+            key={marker.chapterIndex}
+            position={marker.position}
+            icon={getColoredIcon(marker.pinColor)}
             opacity={0.9}
             zIndexOffset={1000}
             eventHandlers={{
-              click: () => handleMarkerClick(location.id, location.position),
-              mouseover: () => setHoveredMarker({ id: location.id, label: location.label, position: location.position }),
+              click: () => handleMarkerClick(marker.chapterIndex, marker.position),
+              mouseover: () => setHoveredMarker({
+                id: marker.chapterIndex,
+                label: marker.label,
+                position: marker.position
+              }),
               mouseout: () => setHoveredMarker(null)
             }}
           />
-        )
-      })}
-    </MapContainer>
+        ))}
+      </MapContainer>
     </>
   )
 }

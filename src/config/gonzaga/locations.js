@@ -1,66 +1,77 @@
 /**
- * Gonzaga locations loaded from Google Sheets
- *
- * Data is fetched and transformed from published Google Sheets CSV
+ * Gonzaga data loaded from Google Sheets (read-only)
  */
-import { fetchSheetData, transformSheetData } from '@/lib/googleSheetsLoader'
+import { loadAllData } from '@/lib/sheetLoader'
 
 // Loading promise to prevent concurrent fetches
 let loadingPromise = null
+let cachedData = null
 
 /**
- * Load locations from Google Sheets
- *
- * Uses cache-busting in fetchSheetData to get fresh data on each page load
- *
- * @returns {Promise<Array>} Locations array
+ * Load all data from Google Sheets
  */
-async function loadLocations() {
+async function loadData() {
+  if (cachedData) {
+    return cachedData
+  }
+
   if (loadingPromise) {
     return loadingPromise
   }
 
   loadingPromise = (async () => {
     try {
-      const sheetData = await fetchSheetData()
-      return transformSheetData(sheetData)
+      const data = await loadAllData()
+      cachedData = data
+      return data
     } catch (error) {
-      return []
+      console.error('Failed to load data:', error)
+      return { timePeriods: [], chapters: [] }
     }
   })()
 
   return loadingPromise
 }
 
-// Export as a promise that resolves to locations
-export const GONZAGA_LOCATIONS = await loadLocations()
+// Export loaded data
+const data = await loadData()
+export const TIME_PERIODS = data.timePeriods
+export const CHAPTERS = data.chapters
 
 /**
- * Filter locations based on the selected year label
- *
- * @param {Array} locations - Array of location objects
- * @param {string} yearLabel - Selected year label
- * @returns {Array} - Filtered locations that have data for that year label
+ * Get a chapter by name
  */
-export function getVisibleLocations(locations, yearLabel) {
-  return locations.filter(location => {
-    // If no timeline, don't show
-    if (!location.timeline || location.timeline.length === 0) return false
-
-    // Check if location has timeline entry for this year label
-    return location.timeline.some(entry => entry.yearLabel === yearLabel)
-  })
+export function getChapter(chapterName) {
+  return CHAPTERS.find(ch => ch.chapter === chapterName)
 }
 
 /**
- * Get timeline details for a specific location and year label
- *
- * @param {Object} location - Location object
- * @param {string} yearLabel - Selected year label
- * @returns {Object|null} Timeline entry for that year label, or null if not found
+ * Get a chapter by index position in the array
  */
-export function getLocationTimeline(location, yearLabel) {
-  if (!location.timeline) return null
+export function getChapterByIndex(index) {
+  return CHAPTERS[index]
+}
 
-  return location.timeline.find(entry => entry.yearLabel === yearLabel) || null
+/**
+ * Get all locations for a chapter, sorted by time period index
+ */
+export function getChapterLocations(chapterName) {
+  const chapter = getChapter(chapterName)
+  return chapter?.locations || []
+}
+
+/**
+ * Get a specific location entry for a chapter and time period
+ */
+export function getLocation(chapterName, timePeriod) {
+  const locations = getChapterLocations(chapterName)
+  return locations.find(loc => loc.timePeriod === timePeriod)
+}
+
+/**
+ * Get location by chapter index and location index within chapter
+ */
+export function getLocationByIndices(chapterIndex, locationIndex) {
+  const chapter = CHAPTERS[chapterIndex]
+  return chapter?.locations?.[locationIndex]
 }

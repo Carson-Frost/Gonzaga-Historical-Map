@@ -1,26 +1,26 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { Map } from '@/components/map'
-import { Sidebar } from '@/components/Sidebar'
-import { LOCATIONS, AVAILABLE_YEARS } from '@/config'
+import { Sidebar } from '@/components/sidebar'
+import { CHAPTERS } from '@/config'
 
 function App() {
-  // Single year state (scrolling timeline changes this)
-  // Default to first year from spreadsheet
-  const [selectedYear, setSelectedYear] = useState(AVAILABLE_YEARS[0])
+  // Chapter index (bottom carousel navigation)
+  const [selectedChapterIndex, setSelectedChapterIndex] = useState(0)
 
-  // Single location index (arrow buttons change this)
+  // Location index within chapter (sidebar scroll pages)
   const [selectedLocationIndex, setSelectedLocationIndex] = useState(0)
 
-  // Track when we need to scroll (only for marker clicks, not manual scrolling)
-  const [shouldScrollToIndex, setShouldScrollToIndex] = useState(null)
+  // Track when we need to scroll sidebar (only for marker clicks)
+  const [shouldScrollToLocation, setShouldScrollToLocation] = useState(null)
 
   // Map instance ref
   const mapInstanceRef = useRef(null)
 
-  // Handle marker click - triggers scroll
-  const handleMarkerClick = (index) => {
-    setSelectedLocationIndex(index)
-    setShouldScrollToIndex(index)
+  // Handle marker click - selects chapter and triggers scroll
+  const handleMarkerClick = (chapterIndex) => {
+    setSelectedChapterIndex(chapterIndex)
+    setSelectedLocationIndex(0) // Reset to first location in chapter
+    setShouldScrollToLocation(0)
   }
 
   // Handle map ready callback
@@ -28,34 +28,25 @@ function App() {
     mapInstanceRef.current = map
   }
 
-  // Center map on current location whenever it changes
-  useEffect(() => {
-    const location = LOCATIONS[selectedLocationIndex]
-    if (mapInstanceRef.current && location) {
-      // Use location-specific zoom if available, otherwise keep current zoom
-      const zoomLevel = location.zoom || mapInstanceRef.current.getZoom()
-      mapInstanceRef.current.setView(location.position, zoomLevel, { animate: true })
-    }
-  }, [selectedLocationIndex])
-
   return (
     <div className="flex h-screen w-screen overflow-hidden">
       {/* Sidebar */}
       <Sidebar
-        selectedYear={selectedYear}
-        setSelectedYear={setSelectedYear}
+        selectedChapterIndex={selectedChapterIndex}
+        setSelectedChapterIndex={setSelectedChapterIndex}
         selectedLocationIndex={selectedLocationIndex}
         setSelectedLocationIndex={setSelectedLocationIndex}
-        shouldScrollToIndex={shouldScrollToIndex}
-        onScrollComplete={() => setShouldScrollToIndex(null)}
+        shouldScrollToLocation={shouldScrollToLocation}
+        onScrollComplete={() => setShouldScrollToLocation(null)}
       />
 
       {/* Map */}
       <div className="flex-1">
         <Map
-          selectedYear={selectedYear}
+          selectedChapterIndex={selectedChapterIndex}
+          selectedLocationIndex={selectedLocationIndex}
           onMapReady={handleMapReady}
-          setSelectedLocation={handleMarkerClick}
+          setSelectedChapter={handleMarkerClick}
         />
       </div>
     </div>

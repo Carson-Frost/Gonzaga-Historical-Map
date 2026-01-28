@@ -1,70 +1,82 @@
 import React, { useEffect, useRef } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { AVAILABLE_YEARS } from '@/config'
-import { LOCATIONS, getLocationTimeline } from '@/config'
+import { CHAPTERS } from '@/config'
 
-function YearSection({
-  year,
+/**
+ * Individual location section within a chapter (one per time period)
+ */
+function LocationSection({
   location,
+  chapter,
   sectionRef,
-  yearIndex
+  locationIndex,
+  totalLocations
 }) {
   const [imageError, setImageError] = React.useState(false)
 
-  // Get timeline entry for this year and location
-  const timelineEntry = getLocationTimeline(location, year)
-
-  // Reset image error when timeline entry changes
+  // Reset image error when location changes
   React.useEffect(() => {
     setImageError(false)
-  }, [timelineEntry])
+  }, [location])
+
+  const displayImageCredit = location.imageCredit || 'Credit not available'
+  const creditLink = location.imageCreditLink || null
 
   return (
     <div
       ref={sectionRef}
-      data-year={year}
-      className="year-section h-full flex-shrink-0 flex flex-col p-8 snap-start snap-always bg-white"
+      data-location-index={locationIndex}
+      className="location-section h-full flex-shrink-0 flex flex-col p-8 snap-start snap-always bg-white"
     >
-      {/* Location Title and Year Counter */}
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-2xl font-bold text-foreground">
-          {location.label}
-          {timelineEntry?.imageYear && `, ${timelineEntry.imageYear}`}
-        </h2>
-        <p className="text-xs text-muted-foreground">
-          {yearIndex + 1} / {AVAILABLE_YEARS.length}
+      {/* Location Title */}
+      <h2 className="text-2xl font-bold text-foreground mb-1">
+        {location.title || chapter.chapter}
+      </h2>
+
+      {/* Type (e.g., Building, Statue) */}
+      {location.type && (
+        <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">{location.type}</p>
+      )}
+
+      {/* Address (under title, no label) */}
+      {location.address && (
+        <p className="text-sm text-muted-foreground mb-1">{location.address}</p>
+      )}
+
+      {/* Image Caption and Date (above image) */}
+      {(location.imageCaption || location.imageDate) && (
+        <p className="text-sm text-muted-foreground mb-1">
+          {location.imageCaption}{location.imageCaption && location.imageDate && ', '}{location.imageDate}
         </p>
-      </div>
+      )}
 
       {/* Image */}
-      <div className="mb-4">
-        {timelineEntry?.images && timelineEntry.images.length > 0 && !imageError ? (
-          <>
+      <div className="mb-3">
+        {location.image && !imageError ? (
+          <div>
             <img
-              src={timelineEntry.images[0]}
-              alt={location.label}
+              src={location.image}
+              alt={location.title || chapter.chapter}
               className="w-full h-auto min-h-[150px] object-cover rounded-lg border"
               style={{ borderColor: '#052346' }}
               onError={() => setImageError(true)}
             />
-            {timelineEntry.imageCredit && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Photo:{' '}
-                {timelineEntry.imageCreditLink ? (
-                  <a
-                    href={timelineEntry.imageCreditLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline hover:text-foreground"
-                  >
-                    {timelineEntry.imageCredit}
-                  </a>
-                ) : (
-                  timelineEntry.imageCredit
-                )}
-              </p>
-            )}
-          </>
+            {/* Image Credit */}
+            <p className="text-xs text-muted-foreground mt-1">
+              {creditLink ? (
+                <a
+                  href={creditLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-foreground"
+                >
+                  {displayImageCredit}
+                </a>
+              ) : (
+                <span>{displayImageCredit}</span>
+              )}
+            </p>
+          </div>
         ) : (
           <div className="aspect-video rounded-lg border flex items-center justify-center bg-muted/20" style={{ borderColor: '#052346' }}>
             <p className="text-sm text-muted-foreground">No Image Found</p>
@@ -72,14 +84,14 @@ function YearSection({
         )}
       </div>
 
-      {/* Description Section */}
-      <div>
-        <h3 className="text-xs font-semibold uppercase tracking-wider mb-2 text-muted-foreground">
+      {/* Description */}
+      <div className="flex-1">
+        <h3 className="text-xs font-semibold uppercase tracking-wider mb-1 text-muted-foreground">
           Description
         </h3>
-        {timelineEntry?.description ? (
+        {location.description ? (
           <p className="text-sm leading-relaxed text-foreground">
-            {timelineEntry.description}
+            {location.description}
           </p>
         ) : (
           <p className="text-sm italic text-muted-foreground">
@@ -92,38 +104,47 @@ function YearSection({
 }
 
 export function Sidebar({
-  selectedYear,
-  setSelectedYear,
+  selectedChapterIndex,
+  setSelectedChapterIndex,
   selectedLocationIndex,
   setSelectedLocationIndex,
-  shouldScrollToIndex,
+  shouldScrollToLocation,
   onScrollComplete
 }) {
   const containerRef = useRef(null)
   const sectionRefs = useRef({})
   const isProgrammaticScroll = useRef(false)
 
-  const currentLocation = LOCATIONS[selectedLocationIndex]
+  const currentChapter = CHAPTERS[selectedChapterIndex]
+  const locations = currentChapter?.locations || []
 
-  // Location navigation handlers
-  const handlePreviousLocation = () => {
-    if (selectedLocationIndex > 0) {
-      setSelectedLocationIndex(selectedLocationIndex - 1)
+  // Chapter navigation handlers - preserve time period across chapters
+  const handlePreviousChapter = () => {
+    if (selectedChapterIndex > 0) {
+      const currentTimePeriod = locations[selectedLocationIndex]?.timePeriod
+      const newChapter = CHAPTERS[selectedChapterIndex - 1]
+      const newLocationIndex = newChapter?.locations?.findIndex(loc => loc.timePeriod === currentTimePeriod)
+      setSelectedChapterIndex(selectedChapterIndex - 1)
+      setSelectedLocationIndex(newLocationIndex >= 0 ? newLocationIndex : 0)
     }
   }
 
-  const handleNextLocation = () => {
-    if (selectedLocationIndex < LOCATIONS.length - 1) {
-      setSelectedLocationIndex(selectedLocationIndex + 1)
+  const handleNextChapter = () => {
+    if (selectedChapterIndex < CHAPTERS.length - 1) {
+      const currentTimePeriod = locations[selectedLocationIndex]?.timePeriod
+      const newChapter = CHAPTERS[selectedChapterIndex + 1]
+      const newLocationIndex = newChapter?.locations?.findIndex(loc => loc.timePeriod === currentTimePeriod)
+      setSelectedChapterIndex(selectedChapterIndex + 1)
+      setSelectedLocationIndex(newLocationIndex >= 0 ? newLocationIndex : 0)
     }
   }
 
-  const canGoPreviousLocation = selectedLocationIndex > 0
-  const canGoNextLocation = selectedLocationIndex < LOCATIONS.length - 1
+  const canGoPreviousChapter = selectedChapterIndex > 0
+  const canGoNextChapter = selectedChapterIndex < CHAPTERS.length - 1
 
-  // Scroll to year when selectedYear changes programmatically
+  // Scroll to location when selectedLocationIndex changes programmatically
   useEffect(() => {
-    const targetElement = sectionRefs.current[selectedYear]
+    const targetElement = sectionRefs.current[selectedLocationIndex]
     const container = containerRef.current
 
     if (!targetElement || !container) return
@@ -144,9 +165,14 @@ export function Sidebar({
     setTimeout(() => {
       isProgrammaticScroll.current = false
     }, 500)
-  }, [selectedYear])
+  }, [selectedLocationIndex, selectedChapterIndex])
 
-  // Detect which year is visible after scroll completes
+  // Clear refs when chapter changes (scroll handled by selectedLocationIndex effect)
+  useEffect(() => {
+    sectionRefs.current = {}
+  }, [selectedChapterIndex])
+
+  // Detect which location is visible after scroll completes
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
@@ -159,23 +185,23 @@ export function Sidebar({
       const containerTop = container.scrollTop
 
       // Find the section whose offsetTop matches or is closest to containerTop
-      let closestYear = AVAILABLE_YEARS[0]
+      let closestIndex = 0
       let closestDistance = Infinity
 
-      AVAILABLE_YEARS.forEach((year) => {
-        const element = sectionRefs.current[year]
+      locations.forEach((_, index) => {
+        const element = sectionRefs.current[index]
         if (!element) return
 
         const distance = Math.abs(element.offsetTop - containerTop)
         if (distance < closestDistance) {
           closestDistance = distance
-          closestYear = year
+          closestIndex = index
         }
       })
 
-      // Update selected year if changed
-      if (closestYear !== selectedYear) {
-        setSelectedYear(closestYear)
+      // Update selected location if changed
+      if (closestIndex !== selectedLocationIndex) {
+        setSelectedLocationIndex(closestIndex)
       }
     }
 
@@ -185,18 +211,18 @@ export function Sidebar({
     return () => {
       container.removeEventListener('scrollend', handleScrollEnd)
     }
-  }, [selectedYear, setSelectedYear])
+  }, [selectedLocationIndex, setSelectedLocationIndex, locations])
 
   return (
     <div className="w-[500px] h-full flex flex-col relative bg-white">
-      {/* Fixed Header - Navy Blue */}
+      {/* Fixed Header - Navy Blue with Chapter Name */}
       <div className="flex-shrink-0 backdrop-blur-md z-10 relative" style={{ backgroundColor: 'oklch(var(--sidebar-background) / 0.95)' }}>
         <div className="px-8 pt-6 pb-5">
           <h1 className="text-5xl text-center mb-3 text-white" style={{ fontFamily: 'Cormorant SC, serif', fontWeight: 400, lineHeight: 0.9 }}>
             Gonzaga<br />Through Time
           </h1>
-          <p className="text-xs text-center uppercase tracking-wider text-white opacity-70">
-            Scroll to explore years
+          <p className="text-xs text-center uppercase tracking-wider text-white opacity-70 mt-1">
+            Scroll to explore time periods
           </p>
         </div>
         {/* Wavy bottom border */}
@@ -213,29 +239,35 @@ export function Sidebar({
         </svg>
       </div>
 
-      {/* Scrollable Year List */}
+      {/* Scrollable Location List (pages within chapter) */}
       <div
         ref={containerRef}
         className="flex-1 overflow-y-auto snap-y snap-mandatory"
         style={{ scrollBehavior: 'smooth' }}
       >
-        {AVAILABLE_YEARS.map((year, index) => (
-          <YearSection
-            key={year}
-            year={year}
-            location={currentLocation}
-            yearIndex={index}
+        {locations.map((location, index) => (
+          <LocationSection
+            key={`${currentChapter?.chapter}-${location.timePeriod}`}
+            location={location}
+            chapter={currentChapter}
+            locationIndex={index}
+            totalLocations={locations.length}
             sectionRef={(el) => {
               if (el) {
-                sectionRefs.current[year] = el
+                sectionRefs.current[index] = el
               }
             }}
           />
         ))}
+        {locations.length === 0 && (
+          <div className="h-full flex items-center justify-center">
+            <p className="text-muted-foreground">No locations found for this chapter</p>
+          </div>
+        )}
       </div>
 
-      {/* Sticky Location Carousel - Bottom Center (fixed height) */}
-      <div className="flex-shrink-0 h-[72px] p-4 backdrop-blur-md z-10 relative" style={{ backgroundColor: 'oklch(var(--sidebar-background) / 0.95)' }}>
+      {/* Sticky Footer Carousel */}
+      <div className="flex-shrink-0 py-3 px-4 backdrop-blur-md z-10 relative" style={{ backgroundColor: 'oklch(var(--sidebar-background) / 0.95)' }}>
         {/* Wavy top border */}
         <svg
           className="absolute top-0 left-0 w-full"
@@ -249,10 +281,11 @@ export function Sidebar({
           />
         </svg>
 
-        <div className="flex items-center justify-between h-full px-4">
-          {canGoPreviousLocation ? (
+        {/* Chapter name centered with nav arrows */}
+        <div className="flex items-center px-2">
+          {canGoPreviousChapter ? (
             <button
-              onClick={handlePreviousLocation}
+              onClick={handlePreviousChapter}
               className="p-2 text-white/80 hover:text-white cursor-pointer flex-shrink-0"
             >
               <ChevronLeft size={32} />
@@ -261,13 +294,20 @@ export function Sidebar({
             <div className="p-2 flex-shrink-0" style={{ width: '48px' }}></div>
           )}
 
-          <div className="text-center flex-1 min-w-0">
-            <p className="text-4xl text-white whitespace-nowrap overflow-hidden text-ellipsis" style={{ fontFamily: 'Cormorant SC, serif', fontWeight: 400 }}>{currentLocation?.label}</p>
+          <div className="flex-1 min-w-0 text-center">
+            {/* Chapter name */}
+            <p className="text-4xl text-white whitespace-nowrap overflow-hidden text-ellipsis" style={{ fontFamily: 'Cormorant SC, serif', fontWeight: 400 }}>
+              {currentChapter?.chapter}
+            </p>
+            {/* Time period label */}
+            <p className="text-base text-white/70">
+              {locations[selectedLocationIndex]?.timePeriod}
+            </p>
           </div>
 
-          {canGoNextLocation ? (
+          {canGoNextChapter ? (
             <button
-              onClick={handleNextLocation}
+              onClick={handleNextChapter}
               className="p-2 text-white/80 hover:text-white cursor-pointer flex-shrink-0"
             >
               <ChevronRight size={32} />
