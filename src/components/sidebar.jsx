@@ -129,15 +129,11 @@ function PeriodOverview({ period, locations, selectLocation }) {
   }, [locations])
 
   const placeCount = locations.length
-  const kicker =
-    placeCount === 0
-      ? period.years
-      : `${period.years} · ${placeCount} ${placeCount === 1 ? 'place' : 'places'}`
 
   return (
     <div className="p-8">
-      <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">{kicker}</p>
-      <h2 className="text-3xl font-bold text-foreground mb-3">{period.name}</h2>
+      <h2 className="text-3xl font-bold text-foreground leading-tight mb-2">{period.name}</h2>
+      <p className="text-sm uppercase tracking-wider text-muted-foreground mb-6">{period.years}</p>
 
       {period.intro ? (
         <p className="text-sm leading-relaxed text-foreground mb-6">{period.intro}</p>
