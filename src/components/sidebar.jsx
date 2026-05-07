@@ -286,9 +286,6 @@ function LocationDrillDown({
           {content?.address && <span>{content.address}</span>}
         </p>
       )}
-      {location.yearsNote && (
-        <p className="text-xs italic text-muted-foreground mt-2">{location.yearsNote}</p>
-      )}
 
       {(content?.imageCaption || content?.imageDate) && (
         <p className="text-sm text-muted-foreground mb-1 mt-4">
