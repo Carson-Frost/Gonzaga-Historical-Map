@@ -80,8 +80,8 @@ function PeriodFooter({ period, canGoPrev, canGoNext, onPrev, onNext }) {
 
         <div className="flex-1 min-w-0 text-center">
           <p
-            className="text-3xl text-white whitespace-nowrap overflow-hidden text-ellipsis"
-            style={{ fontFamily: 'Cormorant SC, serif', fontWeight: 400 }}
+            className={`${(period?.name?.length ?? 0) > 22 ? 'text-2xl' : 'text-3xl'} text-white`}
+            style={{ fontFamily: 'Cormorant SC, serif', fontWeight: 400, lineHeight: '2rem' }}
           >
             {period?.name}
           </p>
