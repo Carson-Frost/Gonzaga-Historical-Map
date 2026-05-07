@@ -1,8 +1,6 @@
-// Map overlays per time period - Gonzaga
-
-import { TIME_PERIODS } from './locations.js'
-
-export { TIME_PERIODS }
+// Historical map image overlays per time period.
+// Add a TimePeriod name as a key with [[swLat,swLng],[neLat,neLng]] bounds
+// and place the JPG at /public/maps/gonzaga/<name>.jpg to enable an overlay.
 
 export const MAP_BOUNDS = {
 }

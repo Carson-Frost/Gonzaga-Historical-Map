@@ -1,52 +1,45 @@
-import { useState, useRef } from 'react'
+import { useState, useCallback } from 'react'
 import { Map } from '@/components/map'
 import { Sidebar } from '@/components/sidebar'
-import { CHAPTERS } from '@/config'
+import { TIME_PERIODS } from '@/config'
 
 function App() {
-  // Chapter index (bottom carousel navigation)
-  const [selectedChapterIndex, setSelectedChapterIndex] = useState(0)
+  // Period is the spine. Selecting a period drives both map pins and sidebar.
+  const [selectedPeriodIndex, setSelectedPeriodIndex] = useState(TIME_PERIODS[0].index)
 
-  // Location index within chapter (sidebar scroll pages)
-  const [selectedLocationIndex, setSelectedLocationIndex] = useState(0)
+  // Optional drill-down. null means the sidebar shows the period overview;
+  // a Location id means it shows that building.
+  const [selectedLocationId, setSelectedLocationId] = useState(null)
 
-  // Track when we need to scroll sidebar (only for marker clicks)
-  const [shouldScrollToLocation, setShouldScrollToLocation] = useState(null)
+  // Period carousel resets the sidebar to the period overview.
+  const setPeriod = useCallback((index) => {
+    setSelectedPeriodIndex(index)
+    setSelectedLocationId(null)
+  }, [])
 
-  // Map instance ref
-  const mapInstanceRef = useRef(null)
+  const selectLocation = useCallback((locationId) => {
+    setSelectedLocationId(locationId)
+  }, [])
 
-  // Handle marker click - selects chapter and triggers scroll
-  const handleMarkerClick = (chapterIndex) => {
-    setSelectedChapterIndex(chapterIndex)
-    setSelectedLocationIndex(0) // Reset to first location in chapter
-    setShouldScrollToLocation(0)
-  }
-
-  // Handle map ready callback
-  const handleMapReady = (map) => {
-    mapInstanceRef.current = map
-  }
+  const clearLocation = useCallback(() => {
+    setSelectedLocationId(null)
+  }, [])
 
   return (
     <div className="flex h-screen w-screen overflow-hidden">
-      {/* Sidebar */}
       <Sidebar
-        selectedChapterIndex={selectedChapterIndex}
-        setSelectedChapterIndex={setSelectedChapterIndex}
-        selectedLocationIndex={selectedLocationIndex}
-        setSelectedLocationIndex={setSelectedLocationIndex}
-        shouldScrollToLocation={shouldScrollToLocation}
-        onScrollComplete={() => setShouldScrollToLocation(null)}
+        selectedPeriodIndex={selectedPeriodIndex}
+        selectedLocationId={selectedLocationId}
+        setPeriod={setPeriod}
+        selectLocation={selectLocation}
+        clearLocation={clearLocation}
       />
 
-      {/* Map */}
       <div className="flex-1">
         <Map
-          selectedChapterIndex={selectedChapterIndex}
-          selectedLocationIndex={selectedLocationIndex}
-          onMapReady={handleMapReady}
-          setSelectedChapter={handleMarkerClick}
+          selectedPeriodIndex={selectedPeriodIndex}
+          selectedLocationId={selectedLocationId}
+          selectLocation={selectLocation}
         />
       </div>
     </div>

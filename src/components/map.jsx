@@ -13,30 +13,26 @@ import {
   MAX_BOUNDS,
   MAX_BOUNDS_VISCOSITY,
   TRANSITION_DELAY,
-  CHAPTERS
+  getPeriod,
+  getLocation,
+  getLocationsForPeriod,
+  getResolvedContent
 } from '@/config'
 import { MapClickListener, DevCoordinatePanel } from '@/components/DevCoordinatePicker'
 import { DEV_MODE } from '@/config/app'
 
-// Default marker icon URLs for React-Leaflet
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png'
 })
 
-// Available marker colors from leaflet-color-markers
 const MARKER_COLORS = ['blue', 'gold', 'red', 'green', 'orange', 'yellow', 'violet', 'grey', 'black']
 const SHADOW_URL = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png'
 
-// Cache for colored icons
 const iconCache = {}
 
-/**
- * Get a colored marker icon
- * @param {string} color - Color name (blue, gold, red, green, orange, yellow, violet, grey, black)
- */
 function getColoredIcon(color) {
   const colorName = (color || 'blue').toLowerCase()
   const validColor = MARKER_COLORS.includes(colorName) ? colorName : 'blue'
@@ -93,10 +89,13 @@ function TooltipOverlay({ hoveredMarker }) {
         pointerEvents: 'none',
         zIndex: 1000,
         transform: 'translate(-50%, -100%)',
-        marginTop: '-50px',
+        marginTop: '-50px'
       }}
     >
-      <div className="bg-popover text-popover-foreground px-3 py-2 rounded-lg border shadow-md relative" style={{ borderColor: '#052346' }}>
+      <div
+        className="bg-popover text-popover-foreground px-3 py-2 rounded-lg border shadow-md relative"
+        style={{ borderColor: '#052346' }}
+      >
         <h3 className="font-semibold text-base">{hoveredMarker.label}</h3>
         <div
           className="absolute left-1/2 -translate-x-1/2"
@@ -106,7 +105,7 @@ function TooltipOverlay({ hoveredMarker }) {
             height: 0,
             borderLeft: '8px solid transparent',
             borderRight: '8px solid transparent',
-            borderTop: '8px solid oklch(var(--popover))',
+            borderTop: '8px solid oklch(var(--popover))'
           }}
         />
         <div
@@ -118,7 +117,7 @@ function TooltipOverlay({ hoveredMarker }) {
             borderLeft: '9px solid transparent',
             borderRight: '9px solid transparent',
             borderTop: '9px solid #052346',
-            zIndex: -1,
+            zIndex: -1
           }}
         />
       </div>
@@ -130,9 +129,7 @@ function MapController({ onMapReady }) {
   const map = useMap()
 
   React.useEffect(() => {
-    if (onMapReady) {
-      onMapReady(map)
-    }
+    if (onMapReady) onMapReady(map)
   }, [map, onMapReady])
 
   React.useEffect(() => {
@@ -145,7 +142,8 @@ function MapController({ onMapReady }) {
       let optimalZoom = MIN_ZOOM
 
       for (let zoom = MIN_ZOOM; zoom <= MAX_ZOOM; zoom += 0.5) {
-        const boundsSize = map.project(bounds.getNorthEast(), zoom)
+        const boundsSize = map
+          .project(bounds.getNorthEast(), zoom)
           .subtract(map.project(bounds.getSouthWest(), zoom))
 
         const boundsWidth = Math.abs(boundsSize.x)
@@ -175,21 +173,18 @@ function MapController({ onMapReady }) {
 
     calculateMinZoom()
 
-    return () => {
-      resizeObserver.disconnect()
-    }
+    return () => resizeObserver.disconnect()
   }, [map])
 
   return null
 }
 
-export function Map({ selectedChapterIndex, selectedLocationIndex, onMapReady, setSelectedChapter }) {
-  const currentChapter = CHAPTERS[selectedChapterIndex]
-  const currentLocation = currentChapter?.locations?.[selectedLocationIndex]
-  const currentTimePeriod = currentLocation?.timePeriod
+export function Map({ selectedPeriodIndex, selectedLocationId, selectLocation }) {
+  const period = getPeriod(selectedPeriodIndex)
+  const periodKey = period?.name
 
-  const [displayedTimePeriod, setDisplayedTimePeriod] = React.useState(currentTimePeriod)
-  const [previousTimePeriod, setPreviousTimePeriod] = React.useState(null)
+  const [displayedPeriodKey, setDisplayedPeriodKey] = React.useState(periodKey)
+  const [previousPeriodKey, setPreviousPeriodKey] = React.useState(null)
   const [isPreloading, setIsPreloading] = React.useState(true)
   const [preloadProgress, setPreloadProgress] = React.useState(0)
   const [preloadTotal, setPreloadTotal] = React.useState(0)
@@ -197,117 +192,93 @@ export function Map({ selectedChapterIndex, selectedLocationIndex, onMapReady, s
   const [devPosition, setDevPosition] = React.useState(null)
   const mapInstanceRef = React.useRef(null)
 
-  // Initial map position from first chapter
-  const firstChapter = CHAPTERS[0]
-  const initialCenter = firstChapter?.position || MAP_CENTER
-  const initialZoom = firstChapter?.zoom || DEFAULT_ZOOM
-
   const handleMapReady = React.useCallback((map) => {
     mapInstanceRef.current = map
-    if (onMapReady) {
-      onMapReady(map)
-    }
-  }, [onMapReady])
+  }, [])
 
-  // Get visible markers - chapters with pins enabled for current time period
   const visibleMarkers = React.useMemo(() => {
-    return CHAPTERS.map((chapter, index) => {
-      // Find location for current time period
-      const locationForTimePeriod = chapter.locations.find(
-        loc => loc.timePeriod === currentTimePeriod
-      )
-
-      if (!locationForTimePeriod) return null
-
-      // Use resolved values (location override > chapter default)
-      const showPin = locationForTimePeriod.resolvedPin
-      if (!showPin) return null
-
+    return getLocationsForPeriod(selectedPeriodIndex).map(loc => {
+      const content = getResolvedContent(loc.id, selectedPeriodIndex)
       return {
-        chapterIndex: index,
-        chapter: chapter.chapter,
-        position: [locationForTimePeriod.resolvedLatitude, locationForTimePeriod.resolvedLongitude],
-        pinColor: locationForTimePeriod.resolvedPinColor || '#3B82F6',
-        label: locationForTimePeriod.title || chapter.chapter
+        id: loc.id,
+        position: [content.latitude, content.longitude],
+        pinColor: loc.pinColor || 'blue',
+        label: loc.title
       }
-    }).filter(Boolean)
-  }, [currentTimePeriod])
+    })
+  }, [selectedPeriodIndex])
 
-  const handleMarkerClick = React.useCallback((chapterIndex, position) => {
-    setSelectedChapter(chapterIndex)
+  const handleMarkerClick = React.useCallback(
+    (locationId, position) => {
+      selectLocation(locationId)
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.setView(position, mapInstanceRef.current.getZoom(), {
+          animate: true
+        })
+      }
+    },
+    [selectLocation]
+  )
 
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.setView(position, mapInstanceRef.current.getZoom(), { animate: true })
-    }
-  }, [setSelectedChapter])
-
-  // Preload all historical map images
+  // Preload historical map images. With empty MAP_BOUNDS this short-circuits.
   React.useEffect(() => {
-    const timePeriodsWithMaps = Object.keys(MAP_BOUNDS)
-    setPreloadTotal(timePeriodsWithMaps.length)
+    const periodsWithMaps = Object.keys(MAP_BOUNDS)
+    setPreloadTotal(periodsWithMaps.length)
 
-    if (timePeriodsWithMaps.length === 0) {
+    if (periodsWithMaps.length === 0) {
       setIsPreloading(false)
       return
     }
 
-    let loadedCount = 0
-    const promises = timePeriodsWithMaps.map(timePeriod => {
-      return new Promise((resolve, reject) => {
-        const img = new Image()
-        img.src = getMapImagePath(timePeriod)
-        img.onload = () => {
-          loadedCount++
-          setPreloadProgress(loadedCount)
-          resolve()
-        }
-        img.onerror = () => {
-          loadedCount++
-          setPreloadProgress(loadedCount)
-          reject(new Error(`Failed to load ${timePeriod}`))
-        }
-      })
-    })
+    let loaded = 0
+    const promises = periodsWithMaps.map(
+      key =>
+        new Promise((resolve, reject) => {
+          const img = new Image()
+          img.src = getMapImagePath(key)
+          img.onload = () => {
+            loaded++
+            setPreloadProgress(loaded)
+            resolve()
+          }
+          img.onerror = () => {
+            loaded++
+            setPreloadProgress(loaded)
+            reject(new Error(`Failed to load ${key}`))
+          }
+        })
+    )
 
-    Promise.allSettled(promises).then(() => {
-      setIsPreloading(false)
-    })
+    Promise.allSettled(promises).then(() => setIsPreloading(false))
   }, [])
 
-  // Crossfade transition when time period changes
   React.useEffect(() => {
-    if (isPreloading || currentTimePeriod === displayedTimePeriod) return
-
-    if (getMapImagePath(displayedTimePeriod)) {
-      setPreviousTimePeriod(displayedTimePeriod)
+    if (isPreloading || periodKey === displayedPeriodKey) return
+    if (getMapImagePath(displayedPeriodKey)) {
+      setPreviousPeriodKey(displayedPeriodKey)
     }
+    setDisplayedPeriodKey(periodKey)
+    const t = setTimeout(() => setPreviousPeriodKey(null), TRANSITION_DELAY)
+    return () => clearTimeout(t)
+  }, [periodKey, displayedPeriodKey, isPreloading])
 
-    setDisplayedTimePeriod(currentTimePeriod)
-
-    const timeoutId = setTimeout(() => setPreviousTimePeriod(null), TRANSITION_DELAY)
-    return () => clearTimeout(timeoutId)
-  }, [currentTimePeriod, displayedTimePeriod, isPreloading])
-
-  // Center map on chapter when it changes
+  // When the user drills into a building, pan to it. Don't pan when only the
+  // period changes (the map already shows the new period's pins).
   React.useEffect(() => {
-    if (!mapInstanceRef.current || !currentChapter) return
-
-    const location = currentLocation
-    if (location) {
-      const position = [location.resolvedLatitude, location.resolvedLongitude]
-      const zoom = location.resolvedZoom || mapInstanceRef.current.getZoom()
-      mapInstanceRef.current.setView(position, zoom, { animate: true })
-    }
-  }, [selectedChapterIndex, selectedLocationIndex, currentChapter, currentLocation])
+    if (!mapInstanceRef.current || !selectedLocationId) return
+    const loc = getLocation(selectedLocationId)
+    if (!loc) return
+    const position = [loc.latitude, loc.longitude]
+    const zoom = loc.zoom || mapInstanceRef.current.getZoom()
+    mapInstanceRef.current.setView(position, zoom, { animate: true })
+  }, [selectedLocationId])
 
   if (isPreloading) {
     return (
       <div className="h-full w-full flex items-center justify-center bg-muted/20">
         <div className="text-center space-y-4">
           <Loader2 size={48} className="animate-spin mx-auto text-primary" />
-          <h2 className="text-xl font-semibold">
-            Loading Historical Maps
-          </h2>
+          <h2 className="text-xl font-semibold">Loading Historical Maps</h2>
           <p className="text-muted-foreground">
             {preloadProgress} / {preloadTotal} maps loaded
           </p>
@@ -318,17 +289,13 @@ export function Map({ selectedChapterIndex, selectedLocationIndex, onMapReady, s
 
   return (
     <>
-      {/* Dev coordinate picker panel - renders OUTSIDE the map */}
       {DEV_MODE && (
-        <DevCoordinatePanel
-          position={devPosition}
-          onClose={() => setDevPosition(null)}
-        />
+        <DevCoordinatePanel position={devPosition} onClose={() => setDevPosition(null)} />
       )}
 
       <MapContainer
-        center={initialCenter}
-        zoom={initialZoom}
+        center={MAP_CENTER}
+        zoom={DEFAULT_ZOOM}
         minZoom={MIN_ZOOM}
         maxZoom={MAX_ZOOM}
         maxBounds={MAX_BOUNDS}
@@ -340,12 +307,8 @@ export function Map({ selectedChapterIndex, selectedLocationIndex, onMapReady, s
         <ZoomControl position="bottomleft" />
         <TooltipOverlay hoveredMarker={hoveredMarker} />
 
-        {/* Dev click listener - renders INSIDE the map */}
-        {DEV_MODE && (
-          <MapClickListener onPositionClick={setDevPosition} />
-        )}
+        {DEV_MODE && <MapClickListener onPositionClick={setDevPosition} />}
 
-        {/* Modern base map - always visible */}
         <TileLayer
           attribution='&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url="https://tiles.stadiamaps.com/tiles/alidade_bright/{z}/{x}/{y}{r}.png"
@@ -356,47 +319,48 @@ export function Map({ selectedChapterIndex, selectedLocationIndex, onMapReady, s
           updateWhenIdle={true}
         />
 
-        {/* Previous historical map overlay - fading out */}
-        {previousTimePeriod && getMapImagePath(previousTimePeriod) && (
+        {previousPeriodKey && getMapImagePath(previousPeriodKey) && (
           <ImageOverlay
-            key={`prev-${previousTimePeriod}`}
-            url={getMapImagePath(previousTimePeriod)}
-            bounds={MAP_BOUNDS[previousTimePeriod]}
+            key={`prev-${previousPeriodKey}`}
+            url={getMapImagePath(previousPeriodKey)}
+            bounds={MAP_BOUNDS[previousPeriodKey]}
             opacity={1.0}
             interactive={false}
           />
         )}
 
-        {/* Current historical map overlay - on top */}
-        {displayedTimePeriod && getMapImagePath(displayedTimePeriod) && (
+        {displayedPeriodKey && getMapImagePath(displayedPeriodKey) && (
           <ImageOverlay
-            key={displayedTimePeriod}
-            url={getMapImagePath(displayedTimePeriod)}
-            bounds={MAP_BOUNDS[displayedTimePeriod]}
+            key={displayedPeriodKey}
+            url={getMapImagePath(displayedPeriodKey)}
+            bounds={MAP_BOUNDS[displayedPeriodKey]}
             opacity={1.0}
             interactive={false}
           />
         )}
 
-        {/* Location markers */}
-        {visibleMarkers.map(marker => (
-          <Marker
-            key={marker.chapterIndex}
-            position={marker.position}
-            icon={getColoredIcon(marker.pinColor)}
-            opacity={0.9}
-            zIndexOffset={1000}
-            eventHandlers={{
-              click: () => handleMarkerClick(marker.chapterIndex, marker.position),
-              mouseover: () => setHoveredMarker({
-                id: marker.chapterIndex,
-                label: marker.label,
-                position: marker.position
-              }),
-              mouseout: () => setHoveredMarker(null)
-            }}
-          />
-        ))}
+        {visibleMarkers.map(marker => {
+          const isSelected = marker.id === selectedLocationId
+          return (
+            <Marker
+              key={marker.id}
+              position={marker.position}
+              icon={getColoredIcon(marker.pinColor)}
+              opacity={isSelected ? 1.0 : selectedLocationId ? 0.55 : 0.9}
+              zIndexOffset={isSelected ? 2000 : 1000}
+              eventHandlers={{
+                click: () => handleMarkerClick(marker.id, marker.position),
+                mouseover: () =>
+                  setHoveredMarker({
+                    id: marker.id,
+                    label: marker.label,
+                    position: marker.position
+                  }),
+                mouseout: () => setHoveredMarker(null)
+              }}
+            />
+          )
+        })}
       </MapContainer>
     </>
   )
