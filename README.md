@@ -33,7 +33,7 @@ The terminal prints a local address (usually `http://localhost:5173`).
 Open that in a browser. The page reloads automatically when content
 files are edited. `Ctrl+C` in the terminal stops it.
 
-## Adding or editing content
+## Adding/editing historical data and content
 
 See [EDITING.md](./EDITING.md).
 
