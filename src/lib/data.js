@@ -108,10 +108,13 @@ export function getOrderedLocationsForPeriod(periodIndex) {
 }
 
 // Next or previous Location within the current period, following the same
-// category-then-alphabetical order shown in the period overview.
+// category-then-alphabetical order shown in the period overview. Wraps around
+// at the ends so the drill-down nav always offers both directions.
 export function getAdjacentLocationInPeriod(locationId, periodIndex, direction) {
   const ordered = getOrderedLocationsForPeriod(periodIndex)
+  if (ordered.length < 2) return null
   const idx = ordered.findIndex(l => l.id === locationId)
   if (idx === -1) return null
-  return ordered[idx + direction] || null
+  const wrapped = (idx + direction + ordered.length) % ordered.length
+  return ordered[wrapped]
 }
