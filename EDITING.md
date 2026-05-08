@@ -1,16 +1,17 @@
 # Editing content
 
-The map's content lives in two files:
+Previously, data lived in a google spreadsheet. We can revert back to this later if needed, but currently data is just packaged with project; it makes seeing updates and changes faster and easier.
+The content lives in two files:
 
 - `src/data/locations.js` — every building, statue, and landmark.
 - `src/data/snapshots.js` — period-specific photos and descriptions.
 
 Open them in any text editor. With `npm run dev` running, the page
-reloads on save.
+updates on saved changes.
 
 ---
 
-## Adding a building, statue, or landmark
+## Adding a location
 
 In `src/data/locations.js`, add a new entry inside the `[ ]` brackets,
 with a comma after the previous entry:
