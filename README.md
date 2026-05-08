@@ -39,8 +39,7 @@ See [EDITING.md](./EDITING.md).
 
 ## Project layout
 
-- `src/data/` — historical content. The files edited by content
-  maintainers.
+- `src/data/` — historical content and data.
 - `public/` — static files (images, favicons).
 - `src/components/` — UI code.
 - `src/config/` — map bounds and dev-mode toggles.
