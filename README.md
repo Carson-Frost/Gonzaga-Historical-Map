@@ -1,96 +1,81 @@
 # Gonzaga Historical Map
 
-An interactive web app showing Gonzaga University's history through time. A
-map of campus paired with a scrollable timeline sidebar; click through eras
-to see which buildings stood when, with historical photos and notes.
+Interactive web app showing Gonzaga University's history through time. A
+campus map paired with a scrollable timeline sidebar; each era reveals
+which buildings stood when, with historical photos and notes.
 
-Built with React, Vite, and Leaflet. The historical content lives in plain
-data files that anyone can edit — see [EDITING.md](./EDITING.md).
+Built with React, Vite, and Leaflet. Historical content lives in plain
+data files — see [EDITING.md](./EDITING.md).
 
 ---
 
-## What you need installed
+## Prerequisites
 
-You only need two things on your computer:
+- **Node.js 18 or newer.** Installer includes `npm`. Available at
+  [nodejs.org](https://nodejs.org).
+- **Git** — only required for cloning the repo.
 
-1. **Node.js (version 18 or newer).** Download from
-   [nodejs.org](https://nodejs.org). The installer includes `npm`, which is
-   what runs the project. Pick the "LTS" version if you're unsure.
-2. **Git** — only if you want to clone the project from GitHub. Otherwise
-   you can download a zip from the project page. Get it from
-   [git-scm.com](https://git-scm.com).
-
-To check that Node is installed, open a terminal (Terminal on Mac, Command
-Prompt or PowerShell on Windows) and run:
+To verify the install:
 
 ```
 node --version
 npm --version
 ```
 
-Both commands should print a version number. If they don't, Node isn't
-installed correctly yet.
+Both commands print a version number when Node is installed correctly.
 
 ---
 
-## Getting it running
+## Setup
 
-From a terminal, in the folder where you want the project to live:
+From a terminal, in the parent folder where the project should live:
 
-1. **Get the code.**
+1. Clone the repo:
 
    ```
    git clone <repo-url> gu-historical-map
    cd gu-historical-map
    ```
 
-   Or download the zip from GitHub, unzip it, and `cd` into the folder.
-
-2. **Install dependencies (one-time, takes a minute or two).**
+2. Install dependencies (one-time):
 
    ```
    npm install
    ```
 
-3. **Start the app.**
+3. Start the dev server:
 
    ```
    npm run dev
    ```
 
-   The terminal will print a local address (usually
-   `http://localhost:5173`). Open that in your browser. The app reloads
-   automatically when you save changes to data files.
-
-When you're done, stop the server with `Ctrl+C` in the terminal.
+The terminal prints a local address (usually `http://localhost:5173`).
+The app reloads automatically when data files change. `Ctrl+C` stops the
+server.
 
 ---
 
-## Other commands
+## Commands
 
-- `npm run build` — produces a static site in the `dist/` folder, ready to
-  upload to a host.
-- `npm run preview` — serves the built site locally, so you can check it
-  before deploying.
-- `npm run lint` — runs the code style checker. Useful for engineers; not
-  needed for editing content.
+- `npm run dev` — local dev server with hot reload.
+- `npm run build` — produces a static site in `dist/` for hosting.
+- `npm run preview` — serves the built site locally.
+- `npm run lint` — runs the code style checker.
 
 ---
 
 ## Editing the historical content
 
-If you're here to add a building, change a year, or attach a photo to a
-period, head to [EDITING.md](./EDITING.md). It walks through the three
-data files in plain language, with copy-paste examples.
+See [EDITING.md](./EDITING.md) for the data file structure and
+instructions for adding buildings, periods, or photos.
 
 ---
 
 ## Project layout
 
-For orientation:
-
-- `src/data/` — the historical content. **This is where editors work.**
-- `public/` — static files (images you host yourself, favicons, etc.).
-- `src/components/` — the user interface. Engineers only.
+- `src/data/` — historical content. The files edited by content
+  maintainers.
+- `public/` — static files (images, favicons).
+- `src/components/` — UI code.
 - `src/config/` — map bounds and dev-mode toggles.
-- `src/lib/` — the code that joins the three data files together.
+- `src/lib/` — code that joins the three data files together.

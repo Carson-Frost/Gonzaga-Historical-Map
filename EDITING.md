@@ -1,74 +1,67 @@
 # Editing the historical content
 
-This guide walks through the three data files that drive the map and
-timeline. You don't need to know JavaScript to edit them — they are
-structured lists of entries, like spreadsheets in code form.
-
-If you haven't run the app yet, start with the [README](./README.md).
+The map and timeline are driven by three data files in `src/data/`. The
+files are JavaScript but contain only structured lists of entries — no
+programming required for routine edits.
 
 ---
 
-## Before you edit
+## Setup
 
-- **Open the project in a text editor.** Anything works; [VS
-  Code](https://code.visualstudio.com) is a good free option and will
-  highlight syntax errors as you type.
-- **Run the app while you edit:** in a terminal, `npm run dev`. The page
-  refreshes the moment you save a file, so you'll see your edits
-  immediately.
-- **Watch your punctuation.** Each entry is wrapped in `{ ... }` and
-  separated from the next by a comma. The whole list is wrapped in `[
-  ... ]`. If the page goes blank after a save, the terminal will show the
-  exact line where a comma or quote went missing.
+- Files can be edited in any text editor;
+  [VS Code](https://code.visualstudio.com) flags syntax errors inline.
+- Running `npm run dev` in a terminal during editing reloads the page on
+  every save.
+- Each entry is wrapped in `{ ... }` and separated by a comma; the whole
+  list is wrapped in `[ ... ]`. A missing comma or quote causes a blank
+  page; the dev-server terminal prints the offending line.
 
 ---
 
 ## The three files
 
-All three live in `src/data/`.
+All in `src/data/`.
 
-| File | What it holds | How often you'll edit it |
+| File | Contents | Edit frequency |
 |---|---|---|
-| `timePeriods.js` | The eras shown in the sidebar (e.g. "1887–1940", "Modern GU"). | Rarely. |
-| `locations.js` | Every building, statue, and landmark on campus, past and present. | The main file. |
-| `snapshots.js` | Period-specific descriptions and photos for a given location. | Whenever you have new content to attach. |
+| `timePeriods.js` | Eras shown in the sidebar (e.g. "1887–1940"). | Rarely. |
+| `locations.js` | Every building, statue, and landmark on campus, past and present. | Most edits happen here. |
+| `snapshots.js` | Period-specific descriptions and photos for a location. | When new content is added. |
 
 ### How they fit together
 
-A **location** appears on the map in any period where it existed — that
-is, built before the period ends and not yet demolished when the period
-starts. The location alone gets it onto the map.
+A **location** appears on the map in any period where it existed — built
+before the period ends and not yet demolished when the period starts.
+The location alone is enough to put a pin on the map.
 
-A **snapshot** is an optional layer on top: the description, photo, and
-caption that show in the sidebar for one specific location in one specific
-period. Without a snapshot, the location still shows up on the map; the
-sidebar just won't have a photo or write-up for that era.
+A **snapshot** is an optional layer: the description, photo, and caption
+shown in the sidebar for one specific location in one specific period.
+Without a snapshot, the location still appears on the map; the sidebar
+simply lacks rich content for that era.
 
 ---
 
-## `timePeriods.js` — the eras
+## `timePeriods.js`
 
-There are five periods today; you usually won't change them. Each entry
-has these fields:
+Five fixed periods. Fields:
 
 | Field | Meaning |
 |---|---|
-| `index` | A number (1–5) used to link snapshots to this period. Don't reuse or skip numbers. |
-| `name` | The era's display name (e.g. "Modern GU"). |
-| `years` | The display label for the year range (e.g. "2011–present"). |
-| `startYear` | The first year (inclusive) of the period. |
-| `endYear` | The last year (inclusive) of the period. |
-| `intro` | Optional intro paragraph for the period. `null` if none. |
+| `index` | Number 1–5; referenced by snapshots. Numbers must not be reused or skipped. |
+| `name` | Era display name. |
+| `years` | Display label for the year range. |
+| `startYear` | First year of the period (inclusive). |
+| `endYear` | Last year of the period (inclusive). |
+| `intro` | Optional intro paragraph. `null` if none. |
 
-`startYear` and `endYear` are what the app uses to decide whether a
-location was standing during this period. Display labels are separate so
-you can write "1887–1940" or "Pre-1900" however you like.
+`startYear` and `endYear` determine extant calculations. Display labels
+are independent of those numbers.
 
 ---
 
-## `locations.js` — buildings, statues, landmarks
+## `locations.js`
 
-The biggest file you'll edit. Each entry looks like this:
+Each entry:
 
 ```js
 {
@@ -88,35 +81,31 @@ The biggest file you'll edit. Each entry looks like this:
 }
 ```
 
-Field reference:
-
 | Field | Meaning |
 |---|---|
-| `id` | A short, lowercase, hyphenated name (e.g. `'college-hall'`). Used internally to link snapshots. **Do not change an `id` after publishing** — it would break any snapshots pointing at it. |
-| `title` | The display name shown to users. |
-| `type` | What kind of thing it is. Most entries are `'Building'`. |
-| `category` | Used for grouping and pin colors. One of: `Academic`, `Residence`, `Service`, `Athletic`, `Religious`, `Landmark`, `Statue`. |
-| `builtYear` | Year it first appeared on this site, as a number. Use `null` only as a placeholder — entries with `null` here are hidden from the map. |
-| `demolishedYear` | Year it was removed, as a number. Use `null` if it's still standing. |
-| `yearsNote` | Free-form text for renovations, renames, fires, etc. Kept in the data for editorial reference. |
+| `id` | Short, lowercase, hyphenated identifier. Referenced by snapshots. **Stable after publishing** — changing it breaks any snapshot pointing at it. |
+| `title` | Display name. |
+| `type` | Kind of entity. Most entries are `'Building'`. |
+| `category` | One of: `Academic`, `Residence`, `Service`, `Athletic`, `Religious`, `Landmark`, `Statue`. |
+| `builtYear` | Year the entry first appeared on this site. `null` is a placeholder; entries with `null` are hidden from the map. |
+| `demolishedYear` | Year removed. `null` if still standing. |
+| `yearsNote` | Free-form text for renovations, renames, fires. Stored for editorial reference; not displayed in the UI. |
 | `address` | Street address as a string, or `null`. |
-| `latitude` / `longitude` | Map coordinates. For demolished buildings, use the historical site. See "Finding coordinates" below. |
-| `pinColor` | The map pin color. One of: `blue`, `gold`, `red`, `green`, `orange`, `yellow`, `violet`, `grey`, `black`. |
-| `zoom` | The map's zoom level when this location is selected. Use the shared `ZOOM` constant at the top of the file. |
-| `siteGroup` | Optional. A short label (e.g. `'college-hall-site'`) shared by buildings that occupied the same plot over time. Lets the UI link "what was here before / after". `null` for most entries. |
+| `latitude` / `longitude` | Map coordinates. Demolished buildings are placed at the historical site. |
+| `pinColor` | One of: `blue`, `gold`, `red`, `green`, `orange`, `yellow`, `violet`, `grey`, `black`. |
+| `zoom` | Map zoom level when the entry is selected. The shared `ZOOM` constant at the top of the file is used by all entries. |
+| `siteGroup` | Optional. A short label shared by buildings that occupied the same plot over time. Enables "what was here before / after" UI. `null` for most entries. |
 
 ### Finding coordinates
 
-Set `DEV_MODE = true` in `src/config/app.js` (it's on by default). When
-the dev server is running, click anywhere on the map and the app will
-print the latitude and longitude — paste those into the entry.
+With `DEV_MODE = true` in `src/config/app.js` (the default) and the dev
+server running, clicking the map prints latitude and longitude.
 
 ---
 
-## `snapshots.js` — period-specific photos and descriptions
+## `snapshots.js`
 
-Each snapshot ties one location to one time period and adds rich content
-for that combination. Example:
+Each entry pairs one location with one period:
 
 ```js
 {
@@ -134,35 +123,32 @@ for that combination. Example:
 }
 ```
 
-Field reference:
-
 | Field | Meaning |
 |---|---|
-| `locationId` | The `id` of the location this snapshot is for (must match an entry in `locations.js`). |
-| `periodIndex` | The `index` of the period this snapshot is for (1–5). |
+| `locationId` | Matches an `id` in `locations.js`. |
+| `periodIndex` | Matches an `index` in `timePeriods.js` (1–5). |
 | `description` | Long-form sidebar text. |
 | `image` | URL to the photo. |
-| `imageCaption` | Short caption shown above the photo. |
-| `imageDate` | When the photo was taken (e.g. `'1923'`, `'c. 1905'`). |
-| `imageCredit` | Attribution text. **Always fill in if known.** |
-| `imageCreditLink` | Optional clickable URL for the credit. `null` if none. |
-| `address` | Optional. Override the location's address for just this period (e.g. building moved). `null` to keep the default. |
-| `latitude` / `longitude` | Optional overrides for this period only. `null` to keep the location's defaults. |
+| `imageCaption` | Short caption above the photo. |
+| `imageDate` | When the photo was taken. |
+| `imageCredit` | Attribution text. Filled in when the source is known. |
+| `imageCreditLink` | Optional URL for the credit. `null` if none. |
+| `address` | Optional override of the location's address for this period only. `null` keeps the default. |
+| `latitude` / `longitude` | Optional overrides for this period only. `null` keeps the defaults. |
 
-`locationId` plus `periodIndex` together identify a snapshot — there
-should only be one snapshot per location per period.
+`locationId` plus `periodIndex` together identify a snapshot — at most
+one snapshot per location per period.
 
 ---
 
-## Worked example: adding a new building
+## Example: adding a new building
 
-Say you want to add a new academic building called "East Hall," built in
-1995 and still standing.
+A new academic building called "East Hall," built in 1995, still
+standing:
 
-1. Open `src/data/locations.js` in your text editor.
-2. Find a sensible spot in the list (entries are loosely grouped by type).
-3. Paste this template, just before a closing `]`, making sure there's a
-   comma after the previous entry:
+1. Open `src/data/locations.js`.
+2. Locate a sensible position in the list (entries are loosely grouped).
+3. Insert this template, with a comma after the previous entry:
 
    ```js
    {
@@ -182,22 +168,21 @@ Say you want to add a new academic building called "East Hall," built in
    }
    ```
 
-4. Replace the latitude and longitude with the real coordinates (use the
-   in-app coordinate picker, see above).
+4. Replace the coordinates with real values (in-app coordinate picker,
+   see above).
 5. Save the file.
-6. The dev server will reload automatically. Switch to a period from 1995
-   onward — your new pin should appear.
+
+The dev server reloads. The pin appears in periods from 1995 onward.
 
 ---
 
-## Worked example: adding a photo and description
+## Example: adding a photo and description
 
-To attach a 1923 photo and write-up of the Administration Building to the
-"Founding to WWII" period (period index 1):
+Attaching a 1923 photo of the Administration Building to "Founding to
+WWII" (period index 1):
 
 1. Open `src/data/snapshots.js`.
-2. Inside the `[ ]`, add this entry (with a comma between it and any
-   neighboring entry):
+2. Inside the `[ ]`, add:
 
    ```js
    {
@@ -215,43 +200,36 @@ To attach a 1923 photo and write-up of the Administration Building to the
    }
    ```
 
-3. Save. Switch to "Founding to WWII" in the app, click the
-   Administration Building — the photo and description appear in the
-   sidebar.
+3. Save.
+
+In "Founding to WWII", clicking the Administration Building shows the
+photo and description in the sidebar.
 
 ---
 
 ## Image and credit rules
 
-This is an educational/archival project, so attribution matters.
-
-- **Always fill in `imageCredit` when you know it.** Leave `null` only
-  when the source genuinely isn't known.
-- **Don't invent or copy-paste credits between photos.** If you're not
-  sure, ask before publishing.
-- **Don't remove an existing credit.** If something needs correcting,
-  flag it rather than silently editing.
-- **Prefer images already cleared for educational use** — Gonzaga
-  Archives, public-domain collections, sources that explicitly permit
-  reuse. When in doubt, flag it before adding.
+- `imageCredit` is filled in whenever the source is known. `null` is
+  used only when the source is genuinely unknown.
+- Credits are not invented or copied between photos.
+- Existing credits are not removed; corrections are flagged before
+  editing.
+- Preferred sources: Gonzaga Archives, public-domain collections,
+  sources that explicitly permit reuse.
 
 ---
 
-## When something breaks
+## Troubleshooting
 
-- **Page goes blank after saving.** Check the terminal where `npm run
-  dev` is running — it will show the file and line where a syntax error
-  is. Most often it's a missing comma between entries, or a stray quote
-  inside a `description` string.
-- **A building doesn't appear when you expect it to.** Compare its
-  `builtYear` and `demolishedYear` against the period's `startYear` /
-  `endYear` in `timePeriods.js`. A location is shown only when
-  `builtYear ≤ endYear` and `demolishedYear` is either `null` or `≥
-  startYear`. A `null` `builtYear` hides it everywhere.
-- **The pin is in the wrong spot.** Re-check `latitude` and `longitude`.
-  The coordinate picker (with `DEV_MODE = true`) is the easiest way to
-  refine.
-- **A snapshot doesn't show up.** Make sure `locationId` exactly matches
-  a `id` in `locations.js`, and that `periodIndex` is one of 1–5.
-
-If you're stuck, save your work, note what you tried, and ask for help.
+- **Blank page after saving.** The dev-server terminal prints the file
+  and line of the syntax error. Most often a missing comma or stray
+  quote inside a `description` string.
+- **Building doesn't appear in a period.** Compare its `builtYear` and
+  `demolishedYear` against `startYear` / `endYear` in `timePeriods.js`.
+  A location is shown when `builtYear ≤ endYear` and `demolishedYear` is
+  `null` or `≥ startYear`. A `null` `builtYear` hides the entry
+  everywhere.
+- **Pin in the wrong spot.** Verify `latitude` and `longitude`. The
+  coordinate picker is the easiest way to refine.
+- **Snapshot not appearing.** Verify `locationId` matches an `id` in
+  `locations.js` and that `periodIndex` is 1–5.
