@@ -1,17 +1,27 @@
 # Gonzaga Historical Map
 
-Interactive map and timeline showing Gonzaga University's history.
+Interactive map showing Gonzaga University's campus in five different
+time periods.
+
+Built with React, Vite, and Leaflet.
 
 ## First-time setup
 
 Install [Node.js](https://nodejs.org) (the LTS version is fine). Then,
-in a terminal opened inside the project folder:
+in a terminal:
 
-```
-npm install
-```
+1. Clone the repo:
 
-This downloads everything the app needs. It only has to run once.
+   ```
+   git clone <repo-url> gu-historical-map
+   cd gu-historical-map
+   ```
+
+2. Install dependencies (one-time):
+
+   ```
+   npm install
+   ```
 
 ## Running the app
 
@@ -26,3 +36,12 @@ files are edited. `Ctrl+C` in the terminal stops it.
 ## Adding or editing content
 
 See [EDITING.md](./EDITING.md).
+
+## Project layout
+
+- `src/data/` — historical content. The files edited by content
+  maintainers.
+- `public/` — static files (images, favicons).
+- `src/components/` — UI code.
+- `src/config/` — map bounds and dev-mode toggles.
+- `src/lib/` — code that joins the data files together.

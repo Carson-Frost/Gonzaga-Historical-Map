@@ -100,22 +100,12 @@ At most one snapshot per location per era.
 
 ---
 
-## Image credit rules
-
-- `imageCredit` is filled in whenever the source is known. `null` only
-  when the source is genuinely unknown.
-- Credits are not invented or copied between photos.
-- Existing credits are not removed.
-
----
-
-## When something looks wrong
+## Troubleshooting
 
 - **Blank page after saving.** The terminal running `npm run dev` prints
   the file and line of the syntax error. Most often a missing comma or
   a stray quote inside a `description` string.
 - **Building doesn't appear in the era expected.** Compare its
   `builtYear` and `demolishedYear` against the era's year range.
-- **Pin in the wrong spot.** Re-check `latitude` and `longitude`.
 - **Snapshot not appearing.** Check that `locationId` matches an entry
   in `locations.js` and that `periodIndex` is 1–5.
