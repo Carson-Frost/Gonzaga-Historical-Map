@@ -33,13 +33,14 @@ The terminal prints a local address (usually `http://localhost:5173`).
 Open that in a browser. The page reloads automatically when content
 files are edited. `Ctrl+C` in the terminal stops it.
 
-## Editing content
+## Adding or editing content
 
 See [EDITING.md](./EDITING.md).
 
 ## Project layout
 
-- `src/data/` — historical content. The files maintainers edit.
+- `src/data/` — historical content. The files edited by content
+  maintainers.
 - `public/` — static files (images, favicons).
 - `src/components/` — UI code.
 - `src/config/` — map bounds and dev-mode toggles.
