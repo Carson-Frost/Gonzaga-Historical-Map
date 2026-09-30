@@ -52,9 +52,6 @@ function PeriodOverview({ period, locations, selectLocation }) {
 
   return (
     <div className="p-8">
-      <h2 className="text-3xl font-bold text-foreground leading-tight mb-2">{period.name}</h2>
-      <p className="text-sm uppercase tracking-wider text-muted-foreground mb-6">{period.years}</p>
-
       {period.intro ? (
         <p className="text-sm leading-relaxed text-foreground mb-6">{period.intro}</p>
       ) : (
