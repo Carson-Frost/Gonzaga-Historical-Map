@@ -66,3 +66,42 @@
     font-family: Georgia, serif;
   }
 }
+
+/* Floating see-through surface shared by every card over the map */
+@layer components {
+  .glass {
+    background-color: oklch(100% 0 0 / 0.7);
+    backdrop-filter: blur(16px) saturate(1.4);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4);
+    border: 1px solid oklch(var(--foreground) / 0.14);
+    border-radius: 14px;
+    box-shadow:
+      0 10px 30px -10px oklch(var(--foreground) / 0.35),
+      0 2px 6px -2px oklch(var(--foreground) / 0.15);
+  }
+
+  .glass-divider {
+    border-color: oklch(var(--foreground) / 0.12);
+  }
+
+  .glass-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: oklch(var(--foreground) / 0.25) transparent;
+  }
+}
+
+.leaflet-container {
+  font-family: Georgia, serif;
+}
+
+.leaflet-control-attribution.leaflet-control {
+  background-color: oklch(100% 0 0 / 0.7);
+  backdrop-filter: blur(6px);
+  border-top-left-radius: 6px;
+}
+
+@media (max-width: 639px) {
+  .leaflet-control-attribution.leaflet-control {
+    font-size: 9px;
+  }
+}

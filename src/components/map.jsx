@@ -1,5 +1,5 @@
 import React from 'react'
-import { MapContainer, TileLayer, ImageOverlay, ZoomControl, useMap, Marker } from 'react-leaflet'
+import { MapContainer, TileLayer, ImageOverlay, useMap, Marker } from 'react-leaflet'
 import { Loader2 } from 'lucide-react'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
@@ -19,6 +19,7 @@ import {
 } from '@/config'
 import { MapClickListener, DevCoordinatePanel } from '@/components/DevCoordinatePicker'
 import { DEV_MODE } from '@/config/app'
+import { focusMap } from '@/lib/map'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -32,22 +33,25 @@ const SHADOW_URL = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/
 
 const iconCache = {}
 
-function getColoredIcon(color) {
+// The selected pin is drawn larger so it reads at a glance among the others.
+function getColoredIcon(color, selected = false) {
   const colorName = (color || 'blue').toLowerCase()
   const validColor = MARKER_COLORS.includes(colorName) ? colorName : 'blue'
+  const key = `${validColor}${selected ? '-selected' : ''}`
+  const scale = selected ? 1.4 : 1
 
-  if (!iconCache[validColor]) {
-    iconCache[validColor] = new L.Icon({
+  if (!iconCache[key]) {
+    iconCache[key] = new L.Icon({
       iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${validColor}.png`,
       shadowUrl: SHADOW_URL,
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      popupAnchor: [1, -34],
-      shadowSize: [41, 41]
+      iconSize: [25 * scale, 41 * scale],
+      iconAnchor: [12 * scale, 41 * scale],
+      popupAnchor: [1, -34 * scale],
+      shadowSize: [41 * scale, 41 * scale]
     })
   }
 
-  return iconCache[validColor]
+  return iconCache[key]
 }
 
 function TooltipOverlay({ hoveredMarker }) {
@@ -178,7 +182,7 @@ function MapController({ onMapReady }) {
   return null
 }
 
-export function Map({ selectedPeriodIndex, selectedLocationId, selectLocation }) {
+export function Map({ selectedPeriodIndex, selectedLocationId, selectLocation, onMapReady, focusOffset }) {
   const period = getPeriod(selectedPeriodIndex)
   const periodKey = period?.name
 
@@ -193,7 +197,8 @@ export function Map({ selectedPeriodIndex, selectedLocationId, selectLocation })
 
   const handleMapReady = React.useCallback((map) => {
     mapInstanceRef.current = map
-  }, [])
+    if (onMapReady) onMapReady(map)
+  }, [onMapReady])
 
   const visibleMarkers = React.useMemo(() => {
     return getLocationsForPeriod(selectedPeriodIndex).map(loc => ({
@@ -204,17 +209,6 @@ export function Map({ selectedPeriodIndex, selectedLocationId, selectLocation })
     }))
   }, [selectedPeriodIndex])
 
-  const handleMarkerClick = React.useCallback(
-    (locationId, position) => {
-      selectLocation(locationId)
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.setView(position, mapInstanceRef.current.getZoom(), {
-          animate: true
-        })
-      }
-    },
-    [selectLocation]
-  )
 
   // Preload historical map images. With empty MAP_BOUNDS this short-circuits.
   React.useEffect(() => {
@@ -259,14 +253,16 @@ export function Map({ selectedPeriodIndex, selectedLocationId, selectLocation })
   }, [periodKey, displayedPeriodKey, isPreloading])
 
   // When the user drills into a building, pan to it. Don't pan when only the
-  // period changes (the map already shows the new period's pins).
+  // period changes (the map already shows the new period's pins). The offset
+  // is read through a ref so opening or closing the panel doesn't re-pan.
+  const focusOffsetRef = React.useRef(focusOffset)
+  focusOffsetRef.current = focusOffset
   React.useEffect(() => {
-    if (!mapInstanceRef.current || !selectedLocationId) return
+    const map = mapInstanceRef.current
+    if (!map || !selectedLocationId) return
     const loc = getLocation(selectedLocationId)
     if (!loc) return
-    const position = [loc.latitude, loc.longitude]
-    const zoom = loc.zoom || mapInstanceRef.current.getZoom()
-    mapInstanceRef.current.setView(position, zoom, { animate: true })
+    focusMap(map, [loc.latitude, loc.longitude], loc.zoom || map.getZoom(), focusOffsetRef.current)
   }, [selectedLocationId])
 
   if (isPreloading) {
@@ -300,7 +296,6 @@ export function Map({ selectedPeriodIndex, selectedLocationId, selectLocation })
         className="h-full w-full z-0"
       >
         <MapController onMapReady={handleMapReady} />
-        <ZoomControl position="bottomleft" />
         <TooltipOverlay hoveredMarker={hoveredMarker} />
 
         {DEV_MODE && <MapClickListener onPositionClick={setDevPosition} />}
@@ -341,11 +336,11 @@ export function Map({ selectedPeriodIndex, selectedLocationId, selectLocation })
             <Marker
               key={marker.id}
               position={marker.position}
-              icon={getColoredIcon(marker.pinColor)}
+              icon={getColoredIcon(marker.pinColor, isSelected)}
               opacity={isSelected ? 1.0 : selectedLocationId ? 0.55 : 0.9}
               zIndexOffset={isSelected ? 2000 : 1000}
               eventHandlers={{
-                click: () => handleMarkerClick(marker.id, marker.position),
+                click: () => selectLocation(marker.id),
                 mouseover: () =>
                   setHoveredMarker({
                     id: marker.id,

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { ArrowLeft, ChevronLeft, ChevronRight, MapPin } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, ChevronRight, MapPin, X } from 'lucide-react'
 import {
   CATEGORY_ORDER,
   getPeriod,
@@ -10,7 +10,6 @@ import {
 } from '@/config'
 
 const NAVY = '#052346'
-const SIDEBAR_BG = 'oklch(var(--sidebar-background) / 0.95)'
 
 const CATEGORY_LABELS = {
   Academic: 'Academics',
@@ -24,29 +23,6 @@ const CATEGORY_LABELS = {
 
 const SECTION_HEADING =
   'text-sm font-bold uppercase tracking-wider text-foreground mb-3'
-
-function PeriodHeader() {
-  return (
-    <div className="flex-shrink-0 backdrop-blur-md z-10 relative" style={{ backgroundColor: SIDEBAR_BG }}>
-      <div className="px-8 pt-6 pb-5">
-        <h1
-          className="text-5xl text-center text-white"
-          style={{ fontFamily: 'Cormorant SC, serif', fontWeight: 400, lineHeight: 0.9 }}
-        >
-          Gonzaga<br />Through Time
-        </h1>
-      </div>
-      <svg
-        className="absolute bottom-0 left-0 w-full"
-        viewBox="0 0 500 20"
-        preserveAspectRatio="none"
-        style={{ height: '20px', transform: 'translateY(100%)' }}
-      >
-        <path d="M0,10 Q125,0 250,10 T500,10 L500,0 L0,0 Z" fill={NAVY} />
-      </svg>
-    </div>
-  )
-}
 
 function PeriodOverview({ period, locations, selectLocation }) {
   const grouped = useMemo(() => {
@@ -75,17 +51,24 @@ function PeriodOverview({ period, locations, selectLocation }) {
   const placeCount = locations.length
 
   return (
-    <div className="p-8">
-      <h2 className="text-3xl font-bold text-foreground leading-tight mb-2">{period.name}</h2>
-      <p className="text-sm uppercase tracking-wider text-muted-foreground mb-6">{period.years}</p>
+    <div className="px-6 pt-5 pb-6">
+      <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">
+        On campus, {period.years}
+      </p>
+      <h2
+        className="text-[28px] leading-tight mb-3"
+        style={{ fontFamily: 'Cormorant SC, serif', fontWeight: 500, color: NAVY }}
+      >
+        {placeCount === 1 ? '1 place' : `${placeCount} places`}
+      </h2>
 
       {period.intro ? (
-        <p className="text-sm leading-relaxed text-foreground mb-6">{period.intro}</p>
+        <p className="text-sm leading-relaxed text-foreground mb-5">{period.intro}</p>
       ) : (
-        <p className="text-sm italic text-muted-foreground mb-6">No description yet</p>
+        <p className="text-sm italic text-muted-foreground mb-5">No description yet</p>
       )}
 
-      <div className="border-t pt-5" style={{ borderColor: NAVY }}>
+      <div className="border-t glass-divider pt-4">
         {placeCount === 0 ? (
           <p className="text-sm italic text-muted-foreground">
             Nothing on campus for this era yet.
@@ -102,7 +85,7 @@ function PeriodOverview({ period, locations, selectLocation }) {
                     <li key={loc.id}>
                       <button
                         onClick={() => selectLocation(loc.id)}
-                        className="w-full text-left flex items-baseline gap-2 py-1 px-2 -mx-2 rounded hover:bg-muted/50 transition-colors group cursor-pointer"
+                        className="w-full text-left flex items-baseline gap-2 py-1 px-2 -mx-2 rounded hover:bg-white/70 transition-colors group cursor-pointer"
                       >
                         <MapPin
                           size={12}
@@ -138,8 +121,7 @@ function LocationImage({ src, alt, credit, creditLink }) {
     <div>
       {showPlaceholder ? (
         <div
-          className="aspect-video rounded-lg border flex items-center justify-center bg-muted/20"
-          style={{ borderColor: NAVY }}
+          className="aspect-video rounded-lg border glass-divider flex items-center justify-center bg-white/50"
         >
           <p className="text-sm text-muted-foreground">No image yet</p>
         </div>
@@ -148,8 +130,7 @@ function LocationImage({ src, alt, credit, creditLink }) {
           <img
             src={src}
             alt={alt}
-            className="w-full h-auto min-h-[150px] object-cover rounded-lg border"
-            style={{ borderColor: NAVY }}
+            className="w-full h-auto min-h-[150px] object-cover rounded-lg border glass-divider"
             onError={() => setErrored(true)}
           />
           {(credit || creditLink) && (
@@ -179,10 +160,9 @@ function NavButton({ onClick, kicker, label, direction }) {
   return (
     <button
       onClick={onClick}
-      className={`min-w-0 w-full flex items-center gap-2 px-3 py-2.5 rounded border hover:bg-muted/50 transition-colors cursor-pointer ${
+      className={`min-w-0 w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border glass-divider bg-white/60 hover:bg-white transition-colors cursor-pointer ${
         isLeft ? 'text-left' : 'text-right'
       }`}
-      style={{ borderColor: NAVY }}
     >
       {isLeft && <ChevronLeft size={16} className="flex-shrink-0 text-muted-foreground" />}
       <div className="min-w-0 flex-1 overflow-hidden">
@@ -201,7 +181,7 @@ function NavButton({ onClick, kicker, label, direction }) {
 // before, after, or on either side of the period being viewed.
 function SeeAlso({ location, period, siteHistory, goToEntry }) {
   return (
-    <div className="border-t pt-5" style={{ borderColor: NAVY }}>
+    <div className="border-t glass-divider pt-5">
       <h3 className={SECTION_HEADING}>See Also</h3>
       <ol className="space-y-3">
         {siteHistory.map(({ period: rowPeriod, entries }) => {
@@ -210,7 +190,7 @@ function SeeAlso({ location, period, siteHistory, goToEntry }) {
             <li
               key={rowPeriod.index}
               className={`pl-3 border-l-2 ${entries.length === 0 ? 'opacity-50' : ''}`}
-              style={{ borderColor: isCurrentPeriod ? NAVY : 'oklch(var(--border))' }}
+              style={{ borderColor: isCurrentPeriod ? NAVY : 'oklch(var(--foreground) / 0.15)' }}
             >
               <div className="flex items-baseline justify-between gap-2">
                 <span
@@ -242,7 +222,7 @@ function SeeAlso({ location, period, siteHistory, goToEntry }) {
                         ) : (
                           <button
                             onClick={() => goToEntry(entry.id, rowPeriod.index)}
-                            className="w-full text-left flex items-baseline gap-2 py-0.5 px-2 -mx-2 rounded hover:bg-muted/50 transition-colors cursor-pointer group"
+                            className="w-full text-left flex items-baseline gap-2 py-0.5 px-2 -mx-2 rounded hover:bg-white/70 transition-colors cursor-pointer group"
                           >
                             <MapPin
                               size={12}
@@ -287,17 +267,22 @@ function LocationDrillDown({
     : null
 
   return (
-    <div className="p-8">
+    <div className="px-6 pt-5 pb-6">
       <button
         onClick={clearLocation}
-        className="inline-flex items-center gap-1.5 text-sm hover:underline underline-offset-4 cursor-pointer mb-3"
+        className="inline-flex items-center gap-1.5 text-xs uppercase tracking-wider hover:underline underline-offset-4 cursor-pointer mb-2"
         style={{ color: NAVY }}
       >
-        <ArrowLeft size={14} />
-        {period.name}
+        <ArrowLeft size={13} />
+        All places
       </button>
 
-      <h2 className="text-3xl font-bold text-foreground leading-tight mb-2">{location.title}</h2>
+      <h2
+        className="text-[28px] leading-tight mb-1 pr-6"
+        style={{ fontFamily: 'Cormorant SC, serif', fontWeight: 500, color: NAVY }}
+      >
+        {location.title}
+      </h2>
 
       {(categoryLabel || location.address) && (
         <p className="text-xs text-muted-foreground">
@@ -334,7 +319,7 @@ function LocationDrillDown({
       </div>
 
       {(prevLocation || nextLocation) && (
-        <div className="border-t pt-5 mb-5" style={{ borderColor: NAVY }}>
+        <div className="border-t glass-divider pt-5 mb-5">
           <h3 className={SECTION_HEADING}>Next</h3>
           <div className="grid grid-cols-2 gap-2">
             {prevLocation ? (
@@ -376,7 +361,8 @@ export function Sidebar({
   selectedLocationId,
   selectLocation,
   clearLocation,
-  goToEntry
+  goToEntry,
+  onClose
 }) {
   const period = getPeriod(selectedPeriodIndex)
 
@@ -396,10 +382,16 @@ export function Sidebar({
   const siteHistory = selectedLocationId ? getSiteHistory(selectedLocationId) : []
 
   return (
-    <div className="w-[500px] h-full flex flex-col relative bg-white">
-      <PeriodHeader />
+    <aside className="glass h-full flex flex-col relative overflow-hidden" aria-label="Places">
+      <button
+        onClick={onClose}
+        aria-label="Hide panel"
+        className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-white/70 transition-colors cursor-pointer"
+      >
+        <X size={16} />
+      </button>
 
-      <div className="flex-1 overflow-y-auto">
+      <div key={drillLocation?.id || 'overview'} className="flex-1 overflow-y-auto overscroll-contain glass-scroll">
         {selectedLocationId && drillLocation ? (
           <LocationDrillDown
             location={drillLocation}
@@ -419,6 +411,6 @@ export function Sidebar({
           />
         )}
       </div>
-    </div>
+    </aside>
   )
 }
