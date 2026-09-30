@@ -1,14 +1,12 @@
 import { useState, useMemo } from 'react'
 import { ArrowLeft, ChevronLeft, ChevronRight, MapPin } from 'lucide-react'
 import {
-  TIME_PERIODS,
   CATEGORY_ORDER,
   getPeriod,
   getLocation,
   getLocationsForPeriod,
-  getResolvedContent,
   getAdjacentLocationInPeriod,
-  getSiteGroupPeers
+  getSiteHistory
 } from '@/config'
 
 const NAVY = '#052346'
@@ -46,60 +44,6 @@ function PeriodHeader() {
       >
         <path d="M0,10 Q125,0 250,10 T500,10 L500,0 L0,0 Z" fill={NAVY} />
       </svg>
-    </div>
-  )
-}
-
-function PeriodFooter({ period, canGoPrev, canGoNext, onPrev, onNext }) {
-  return (
-    <div
-      className="flex-shrink-0 py-3 px-4 backdrop-blur-md z-10 relative"
-      style={{ backgroundColor: SIDEBAR_BG }}
-    >
-      <svg
-        className="absolute top-0 left-0 w-full"
-        viewBox="0 0 500 20"
-        preserveAspectRatio="none"
-        style={{ height: '20px', transform: 'translateY(-100%)' }}
-      >
-        <path d="M0,10 Q125,20 250,10 T500,10 L500,20 L0,20 Z" fill={NAVY} />
-      </svg>
-
-      <div className="flex items-center px-2">
-        {canGoPrev ? (
-          <button
-            onClick={onPrev}
-            className="p-2 text-white/80 hover:text-white cursor-pointer flex-shrink-0"
-            aria-label="Previous time period"
-          >
-            <ChevronLeft size={32} />
-          </button>
-        ) : (
-          <div className="p-2 flex-shrink-0" style={{ width: '48px' }} />
-        )}
-
-        <div className="flex-1 min-w-0 text-center">
-          <p
-            className={`${(period?.name?.length ?? 0) > 22 ? 'text-2xl' : 'text-3xl'} text-white`}
-            style={{ fontFamily: 'Cormorant SC, serif', fontWeight: 400, lineHeight: '2rem' }}
-          >
-            {period?.name}
-          </p>
-          <p className="text-base text-white/70">{period?.years}</p>
-        </div>
-
-        {canGoNext ? (
-          <button
-            onClick={onNext}
-            className="p-2 text-white/80 hover:text-white cursor-pointer flex-shrink-0"
-            aria-label="Next time period"
-          >
-            <ChevronRight size={32} />
-          </button>
-        ) : (
-          <div className="p-2 flex-shrink-0" style={{ width: '48px' }} />
-        )}
-      </div>
     </div>
   )
 }
@@ -187,7 +131,7 @@ function formatYearRange(location) {
   return `${location.builtYear}`
 }
 
-function SnapshotImage({ src, alt, credit, creditLink }) {
+function LocationImage({ src, alt, credit, creditLink }) {
   const [errored, setErrored] = useState(false)
   const showPlaceholder = !src || errored
   return (
@@ -252,15 +196,91 @@ function NavButton({ onClick, kicker, label, direction }) {
   )
 }
 
+// Every period for this location's site: which entries exist there, each a
+// link into that period. The heading stays constant because rows can sit
+// before, after, or on either side of the period being viewed.
+function SeeAlso({ location, period, siteHistory, goToEntry }) {
+  return (
+    <div className="border-t pt-5" style={{ borderColor: NAVY }}>
+      <h3 className={SECTION_HEADING}>See Also</h3>
+      <ol className="space-y-3">
+        {siteHistory.map(({ period: rowPeriod, entries }) => {
+          const isCurrentPeriod = rowPeriod.index === period.index
+          return (
+            <li
+              key={rowPeriod.index}
+              className={`pl-3 border-l-2 ${entries.length === 0 ? 'opacity-50' : ''}`}
+              style={{ borderColor: isCurrentPeriod ? NAVY : 'oklch(var(--border))' }}
+            >
+              <div className="flex items-baseline justify-between gap-2">
+                <span
+                  className={`text-xs uppercase tracking-wider ${
+                    isCurrentPeriod ? 'font-bold text-foreground' : 'text-muted-foreground'
+                  }`}
+                >
+                  {rowPeriod.name}
+                </span>
+                <span className="text-xs text-muted-foreground whitespace-nowrap tabular-nums">
+                  {rowPeriod.years}
+                </span>
+              </div>
+
+              {entries.length === 0 ? (
+                <p className="text-sm italic text-muted-foreground mt-0.5">No entry</p>
+              ) : (
+                <ul className="mt-0.5">
+                  {entries.map(entry => {
+                    const isHere = isCurrentPeriod && entry.id === location.id
+                    return (
+                      <li key={entry.id}>
+                        {isHere ? (
+                          <span className="flex items-baseline gap-2 py-0.5 text-sm font-semibold text-foreground">
+                            <MapPin size={12} className="self-center flex-shrink-0" />
+                            <span className="flex-1">{entry.title}</span>
+                            <span className="text-xs font-normal text-muted-foreground">Viewing</span>
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => goToEntry(entry.id, rowPeriod.index)}
+                            className="w-full text-left flex items-baseline gap-2 py-0.5 px-2 -mx-2 rounded hover:bg-muted/50 transition-colors cursor-pointer group"
+                          >
+                            <MapPin
+                              size={12}
+                              className="self-center flex-shrink-0 text-muted-foreground group-hover:text-foreground"
+                            />
+                            <span
+                              className="text-sm flex-1 underline-offset-4 group-hover:underline"
+                              style={{ color: NAVY }}
+                            >
+                              {entry.title}
+                            </span>
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                              {formatYearRange(entry)}
+                            </span>
+                          </button>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </li>
+          )
+        })}
+      </ol>
+    </div>
+  )
+}
+
 function LocationDrillDown({
   location,
   period,
-  content,
   prevLocation,
   nextLocation,
-  sitePeers,
+  siteHistory,
   selectLocation,
-  clearLocation
+  clearLocation,
+  goToEntry
 }) {
   const categoryLabel = location.category
     ? CATEGORY_LABELS[location.category] || location.category
@@ -279,35 +299,35 @@ function LocationDrillDown({
 
       <h2 className="text-3xl font-bold text-foreground leading-tight mb-2">{location.title}</h2>
 
-      {(categoryLabel || content?.address) && (
+      {(categoryLabel || location.address) && (
         <p className="text-xs text-muted-foreground">
           {categoryLabel && <span className="uppercase tracking-wider">{categoryLabel}</span>}
-          {categoryLabel && content?.address && <span className="mx-1.5">·</span>}
-          {content?.address && <span>{content.address}</span>}
+          {categoryLabel && location.address && <span className="mx-1.5">·</span>}
+          {location.address && <span>{location.address}</span>}
         </p>
       )}
 
-      {(content?.imageCaption || content?.imageDate) && (
+      {(location.imageCaption || location.imageDate) && (
         <p className="text-sm text-muted-foreground mb-1 mt-4">
-          {content.imageCaption}
-          {content.imageCaption && content.imageDate && ', '}
-          {content.imageDate}
+          {location.imageCaption}
+          {location.imageCaption && location.imageDate && ', '}
+          {location.imageDate}
         </p>
       )}
 
       <div className="my-4">
-        <SnapshotImage
-          key={content?.image || 'no-image'}
-          src={content?.image}
+        <LocationImage
+          key={location.image || 'no-image'}
+          src={location.image}
           alt={location.title}
-          credit={content?.imageCredit}
-          creditLink={content?.imageCreditLink}
+          credit={location.imageCredit}
+          creditLink={location.imageCreditLink}
         />
       </div>
 
       <div className="mb-6">
-        {content?.description ? (
-          <p className="text-sm leading-relaxed text-foreground">{content.description}</p>
+        {location.description ? (
+          <p className="text-sm leading-relaxed text-foreground">{location.description}</p>
         ) : (
           <p className="text-sm italic text-muted-foreground">No description yet</p>
         )}
@@ -341,27 +361,12 @@ function LocationDrillDown({
         </div>
       )}
 
-      {sitePeers.length > 0 && (
-        <div className="border-t pt-5" style={{ borderColor: NAVY }}>
-          <h3 className={SECTION_HEADING}>Same site over time</h3>
-          <ul className="space-y-1">
-            {sitePeers.map(peer => (
-              <li key={peer.id}>
-                <button
-                  onClick={() => selectLocation(peer.id)}
-                  className="w-full text-left flex items-baseline gap-2 py-1 px-2 -mx-2 rounded hover:bg-muted/50 transition-colors cursor-pointer"
-                >
-                  <MapPin size={12} className="self-center flex-shrink-0 text-muted-foreground" />
-                  <span className="text-sm text-foreground flex-1">{peer.title}</span>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">
-                    {formatYearRange(peer)}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <SeeAlso
+        location={location}
+        period={period}
+        siteHistory={siteHistory}
+        goToEntry={goToEntry}
+      />
     </div>
   )
 }
@@ -369,23 +374,11 @@ function LocationDrillDown({
 export function Sidebar({
   selectedPeriodIndex,
   selectedLocationId,
-  setPeriod,
   selectLocation,
-  clearLocation
+  clearLocation,
+  goToEntry
 }) {
   const period = getPeriod(selectedPeriodIndex)
-  const periods = TIME_PERIODS
-
-  const periodIndexInArray = periods.findIndex(p => p.index === selectedPeriodIndex)
-  const canGoPrevPeriod = periodIndexInArray > 0
-  const canGoNextPeriod = periodIndexInArray >= 0 && periodIndexInArray < periods.length - 1
-
-  const handlePrevPeriod = () => {
-    if (canGoPrevPeriod) setPeriod(periods[periodIndexInArray - 1].index)
-  }
-  const handleNextPeriod = () => {
-    if (canGoNextPeriod) setPeriod(periods[periodIndexInArray + 1].index)
-  }
 
   const extantLocations = useMemo(
     () => getLocationsForPeriod(selectedPeriodIndex),
@@ -394,18 +387,13 @@ export function Sidebar({
 
   // Drill-down resolution
   const drillLocation = selectedLocationId ? getLocation(selectedLocationId) : null
-  const drillContent = selectedLocationId
-    ? getResolvedContent(selectedLocationId, selectedPeriodIndex)
-    : null
   const prevLocation = selectedLocationId
     ? getAdjacentLocationInPeriod(selectedLocationId, selectedPeriodIndex, -1)
     : null
   const nextLocation = selectedLocationId
     ? getAdjacentLocationInPeriod(selectedLocationId, selectedPeriodIndex, 1)
     : null
-  const sitePeers = selectedLocationId
-    ? getSiteGroupPeers(selectedLocationId, selectedPeriodIndex)
-    : []
+  const siteHistory = selectedLocationId ? getSiteHistory(selectedLocationId) : []
 
   return (
     <div className="w-[500px] h-full flex flex-col relative bg-white">
@@ -416,12 +404,12 @@ export function Sidebar({
           <LocationDrillDown
             location={drillLocation}
             period={period}
-            content={drillContent}
             prevLocation={prevLocation}
             nextLocation={nextLocation}
-            sitePeers={sitePeers}
+            siteHistory={siteHistory}
             selectLocation={selectLocation}
             clearLocation={clearLocation}
+            goToEntry={goToEntry}
           />
         ) : (
           <PeriodOverview
@@ -431,14 +419,6 @@ export function Sidebar({
           />
         )}
       </div>
-
-      <PeriodFooter
-        period={period}
-        canGoPrev={canGoPrevPeriod}
-        canGoNext={canGoNextPeriod}
-        onPrev={handlePrevPeriod}
-        onNext={handleNextPeriod}
-      />
     </div>
   )
 }

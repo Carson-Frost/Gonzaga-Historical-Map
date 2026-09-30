@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react'
 import { Map } from '@/components/map'
 import { Sidebar } from '@/components/sidebar'
-import { TIME_PERIODS } from '@/config'
+import { Timeline } from '@/components/timeline'
+import { TIME_PERIODS, getLocation, getPeriod, isExtant } from '@/config'
 
 function App() {
   // Period is the spine. Selecting a period drives both map pins and sidebar.
@@ -11,10 +12,19 @@ function App() {
   // a Location id means it shows that building.
   const [selectedLocationId, setSelectedLocationId] = useState(null)
 
-  // Period carousel resets the sidebar to the period overview.
+  // Changing period keeps the selected location when it also exists in the
+  // new period; otherwise the sidebar falls back to the period overview.
   const setPeriod = useCallback((index) => {
     setSelectedPeriodIndex(index)
-    setSelectedLocationId(null)
+    setSelectedLocationId(current =>
+      current && isExtant(getLocation(current), getPeriod(index)) ? current : null
+    )
+  }, [])
+
+  // Jump to a specific location in a specific period (See Also links).
+  const goToEntry = useCallback((locationId, index) => {
+    setSelectedPeriodIndex(index)
+    setSelectedLocationId(locationId)
   }, [])
 
   const selectLocation = useCallback((locationId) => {
@@ -30,12 +40,13 @@ function App() {
       <Sidebar
         selectedPeriodIndex={selectedPeriodIndex}
         selectedLocationId={selectedLocationId}
-        setPeriod={setPeriod}
         selectLocation={selectLocation}
         clearLocation={clearLocation}
+        goToEntry={goToEntry}
       />
 
-      <div className="flex-1">
+      <div className="flex-1 relative">
+        <Timeline selectedPeriodIndex={selectedPeriodIndex} setPeriod={setPeriod} />
         <Map
           selectedPeriodIndex={selectedPeriodIndex}
           selectedLocationId={selectedLocationId}

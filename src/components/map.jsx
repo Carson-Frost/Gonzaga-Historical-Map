@@ -15,8 +15,7 @@ import {
   TRANSITION_DELAY,
   getPeriod,
   getLocation,
-  getLocationsForPeriod,
-  getResolvedContent
+  getLocationsForPeriod
 } from '@/config'
 import { MapClickListener, DevCoordinatePanel } from '@/components/DevCoordinatePicker'
 import { DEV_MODE } from '@/config/app'
@@ -197,15 +196,12 @@ export function Map({ selectedPeriodIndex, selectedLocationId, selectLocation })
   }, [])
 
   const visibleMarkers = React.useMemo(() => {
-    return getLocationsForPeriod(selectedPeriodIndex).map(loc => {
-      const content = getResolvedContent(loc.id, selectedPeriodIndex)
-      return {
-        id: loc.id,
-        position: [content.latitude, content.longitude],
-        pinColor: loc.pinColor || 'blue',
-        label: loc.title
-      }
-    })
+    return getLocationsForPeriod(selectedPeriodIndex).map(loc => ({
+      id: loc.id,
+      position: [loc.latitude, loc.longitude],
+      pinColor: loc.pinColor || 'blue',
+      label: loc.title
+    }))
   }, [selectedPeriodIndex])
 
   const handleMarkerClick = React.useCallback(
