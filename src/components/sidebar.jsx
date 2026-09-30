@@ -10,7 +10,6 @@ import {
 } from '@/config'
 
 const NAVY = '#052346'
-const SIDEBAR_BG = 'oklch(var(--sidebar-background) / 0.95)'
 
 const CATEGORY_LABELS = {
   Academic: 'Academics',
@@ -24,29 +23,6 @@ const CATEGORY_LABELS = {
 
 const SECTION_HEADING =
   'text-sm font-bold uppercase tracking-wider text-foreground mb-3'
-
-function PeriodHeader() {
-  return (
-    <div className="flex-shrink-0 backdrop-blur-md z-10 relative" style={{ backgroundColor: SIDEBAR_BG }}>
-      <div className="px-8 pt-6 pb-5">
-        <h1
-          className="text-5xl text-center text-white"
-          style={{ fontFamily: 'Cormorant SC, serif', fontWeight: 400, lineHeight: 0.9 }}
-        >
-          Gonzaga<br />Through Time
-        </h1>
-      </div>
-      <svg
-        className="absolute bottom-0 left-0 w-full"
-        viewBox="0 0 500 20"
-        preserveAspectRatio="none"
-        style={{ height: '20px', transform: 'translateY(100%)' }}
-      >
-        <path d="M0,10 Q125,0 250,10 T500,10 L500,0 L0,0 Z" fill={NAVY} />
-      </svg>
-    </div>
-  )
-}
 
 function PeriodOverview({ period, locations, selectLocation }) {
   const grouped = useMemo(() => {
@@ -397,8 +373,6 @@ export function Sidebar({
 
   return (
     <div className="w-[500px] h-full flex flex-col relative bg-white">
-      <PeriodHeader />
-
       <div className="flex-1 overflow-y-auto">
         {selectedLocationId && drillLocation ? (
           <LocationDrillDown

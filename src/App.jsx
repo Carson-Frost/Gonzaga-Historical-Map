@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import { Map } from '@/components/map'
 import { Sidebar } from '@/components/sidebar'
-import { Timeline } from '@/components/timeline'
+import { Header } from '@/components/header'
 import { TIME_PERIODS, getLocation, getPeriod, isExtant } from '@/config'
 
 function App() {
@@ -36,22 +36,25 @@ function App() {
   }, [])
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden">
-      <Sidebar
-        selectedPeriodIndex={selectedPeriodIndex}
-        selectedLocationId={selectedLocationId}
-        selectLocation={selectLocation}
-        clearLocation={clearLocation}
-        goToEntry={goToEntry}
-      />
+    <div className="flex flex-col h-screen w-screen overflow-hidden">
+      <Header selectedPeriodIndex={selectedPeriodIndex} setPeriod={setPeriod} />
 
-      <div className="flex-1 relative">
-        <Timeline selectedPeriodIndex={selectedPeriodIndex} setPeriod={setPeriod} />
-        <Map
+      <div className="flex flex-1 min-h-0">
+        <Sidebar
           selectedPeriodIndex={selectedPeriodIndex}
           selectedLocationId={selectedLocationId}
           selectLocation={selectLocation}
+          clearLocation={clearLocation}
+          goToEntry={goToEntry}
         />
+
+        <div className="flex-1">
+          <Map
+            selectedPeriodIndex={selectedPeriodIndex}
+            selectedLocationId={selectedLocationId}
+            selectLocation={selectLocation}
+          />
+        </div>
       </div>
     </div>
   )

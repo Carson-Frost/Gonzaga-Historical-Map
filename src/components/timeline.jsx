@@ -2,170 +2,120 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { TIME_PERIODS } from '@/config'
 
 const NAVY = '#052346'
+const CURRENT_YEAR = new Date().getFullYear()
 
-// The tape runs from the first period's start to the current year, so the
-// open-ended final period ("present") ends at today rather than its endYear.
-const TAPE_START = TIME_PERIODS[0].startYear
-const TAPE_END = Math.max(new Date().getFullYear(), TIME_PERIODS[TIME_PERIODS.length - 1].startYear)
-const TAPE_SPAN = TAPE_END - TAPE_START + 1
+// Years of each neighboring era shown at the ends of the tape.
+const NEIGHBOR_PAD = 3
 
-const TICK_YEARS = Array.from({ length: TAPE_SPAN }, (_, i) => TAPE_START + i)
-
-function yearToPercent(year) {
-  return ((year - TAPE_START) / TAPE_SPAN) * 100
-}
-
-function periodSpan(period) {
-  const end = Math.min(period.endYear, TAPE_END)
-  const left = yearToPercent(period.startYear)
-  const width = yearToPercent(end + 1) - left
-  return { left, width }
+function eraEnd(period) {
+  return Math.min(period.endYear, CURRENT_YEAR)
 }
 
 function tickHeight(year) {
-  if (year % 10 === 0) return 14
-  if (year % 5 === 0) return 9
-  return 5
+  if (year % 10 === 0) return 18
+  if (year % 5 === 0) return 13
+  return 8
 }
 
-function StepButton({ onClick, label, children }) {
+// Fixed-width slot so the tape never shifts when a neighbor is missing.
+function StepButton({ period, direction, onClick }) {
+  const isLeft = direction === 'left'
+  if (!period) return <div className="w-36 flex-shrink-0" />
   return (
     <button
       onClick={onClick}
-      aria-label={label}
-      className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-white shadow-md hover:brightness-125 transition cursor-pointer"
-      style={{ backgroundColor: NAVY }}
+      aria-label={`${isLeft ? 'Previous' : 'Next'} era: ${period.name}`}
+      className={`w-36 flex-shrink-0 flex items-center gap-1.5 text-white/70 hover:text-white transition-colors cursor-pointer ${
+        isLeft ? 'justify-start text-left' : 'justify-end text-right'
+      }`}
     >
-      {children}
+      {isLeft && <ChevronLeft size={28} className="flex-shrink-0" />}
+      <span className="min-w-0">
+        <span className="block text-[10px] uppercase tracking-wider text-white/50">
+          {isLeft ? 'Previous' : 'Next'}
+        </span>
+        <span className="block text-sm leading-tight">{period.name}</span>
+      </span>
+      {!isLeft && <ChevronRight size={28} className="flex-shrink-0" />}
     </button>
   )
 }
 
+// Tape-measure view zoomed to the selected era, with a few years of the
+// neighboring eras shaded at either end.
 export function Timeline({ selectedPeriodIndex, setPeriod }) {
   const position = TIME_PERIODS.findIndex(p => p.index === selectedPeriodIndex)
   const current = TIME_PERIODS[position]
+  if (!current) return null
   const prev = position > 0 ? TIME_PERIODS[position - 1] : null
   const next = position < TIME_PERIODS.length - 1 ? TIME_PERIODS[position + 1] : null
 
-  const currentSpan = current ? periodSpan(current) : null
-  const currentCenter = currentSpan ? currentSpan.left + currentSpan.width / 2 : 50
+  const start = current.startYear - (prev ? NEIGHBOR_PAD : 0)
+  const end = eraEnd(current) + (next ? NEIGHBOR_PAD : 0)
+  const span = end - start
+  const years = Array.from({ length: span + 1 }, (_, i) => start + i)
+  const labelEvery = span > 40 ? 5 : span > 20 ? 2 : 1
+  const pct = year => ((year - start) / span) * 100
+
+  const inEra = year => year >= current.startYear && year <= eraEnd(current)
+  const eraLeft = pct(current.startYear)
+  const eraRight = pct(eraEnd(current))
 
   return (
-    <div className="absolute top-4 left-4 right-4 z-[1000] flex items-start gap-3 pointer-events-none">
-      <div className="pt-3 pointer-events-auto">
-        {prev ? (
-          <StepButton onClick={() => setPeriod(prev.index)} label={`Previous period: ${prev.name}`}>
-            <ChevronLeft size={22} />
-          </StepButton>
-        ) : (
-          <div className="w-10 h-10" />
-        )}
-      </div>
+    <div className="flex-1 min-w-0 flex items-center gap-4 px-8">
+      <StepButton period={prev} direction="left" onClick={() => setPeriod(prev.index)} />
 
       <div className="flex-1 min-w-0">
-        {/* Tape */}
-        <div
-          className="relative h-16 bg-white rounded-md border shadow-md overflow-hidden pointer-events-auto"
-          style={{ borderColor: NAVY }}
-        >
-          {TIME_PERIODS.map(period => {
-            const { left, width } = periodSpan(period)
-            const isCurrent = period.index === selectedPeriodIndex
-            return (
-              <button
-                key={period.index}
-                onClick={() => setPeriod(period.index)}
-                aria-label={`${period.name}, ${period.years}`}
-                aria-current={isCurrent ? 'true' : undefined}
-                className={`absolute top-0 bottom-0 flex items-end justify-center pb-1.5 px-1 cursor-pointer transition-colors ${
-                  isCurrent ? '' : 'hover:bg-slate-100'
-                }`}
-                style={{
-                  left: `${left}%`,
-                  width: `${width}%`,
-                  backgroundColor: isCurrent ? 'rgba(5, 35, 70, 0.12)' : undefined,
-                  borderLeft: `1px solid ${NAVY}`
-                }}
-              >
-                <span
-                  className={`text-[11px] uppercase tracking-wider truncate ${
-                    isCurrent ? 'font-bold' : 'text-slate-500'
-                  }`}
-                  style={isCurrent ? { color: NAVY } : undefined}
-                >
-                  {period.name}
-                </span>
-              </button>
-            )
-          })}
-
-          {/* Ticks and decade labels */}
-          <div className="absolute inset-0 pointer-events-none">
-            {TICK_YEARS.map(year => (
-              <div
-                key={year}
-                className="absolute top-0"
-                style={{ left: `${yearToPercent(year)}%` }}
-              >
-                <div style={{ width: 1, height: tickHeight(year), backgroundColor: NAVY }} />
-                {year % 10 === 0 && (
-                  <span
-                    className="absolute top-3.5 -translate-x-1/2 text-[10px] tabular-nums"
-                    style={{ color: NAVY }}
-                  >
-                    {year}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Current-period bracket along the top edge */}
-          {currentSpan && (
-            <div
-              className="absolute top-0 h-1 pointer-events-none transition-all duration-300"
-              style={{
-                left: `${currentSpan.left}%`,
-                width: `${currentSpan.width}%`,
-                backgroundColor: NAVY
-              }}
-            />
-          )}
+        <div className="flex items-baseline justify-center gap-3 mb-2 text-white">
+          <span
+            className="text-3xl leading-none truncate"
+            style={{ fontFamily: 'Cormorant SC, serif', fontWeight: 400 }}
+          >
+            {current.name}
+          </span>
+          <span className="text-sm text-white/70 tabular-nums whitespace-nowrap">
+            {current.years}
+          </span>
         </div>
 
-        {/* Current-period tag, pointing up at its segment */}
-        {current && (
-          <div className="relative h-16 pointer-events-none">
-            <div
-              className="absolute top-2 -translate-x-1/2 transition-all duration-300"
-              style={{ left: `clamp(9rem, ${currentCenter}%, calc(100% - 9rem))` }}
-            >
+        {/* Tape */}
+        <div className="relative h-12 bg-white rounded-sm shadow-inner overflow-hidden">
+          <div className="absolute inset-y-0 left-4 right-4">
+            {prev && (
               <div
-                className="rounded-md shadow-md px-4 py-1.5 text-center text-white whitespace-nowrap"
-                style={{ backgroundColor: NAVY }}
-              >
-                <p
-                  className="text-2xl leading-7"
-                  style={{ fontFamily: 'Cormorant SC, serif', fontWeight: 400 }}
-                >
-                  {current.name}
-                </p>
-                <p className="text-xs text-white/70 tabular-nums">{current.years}</p>
-              </div>
-            </div>
+                className="absolute inset-y-0 bg-slate-200/70"
+                style={{ left: '-1rem', width: `calc(${eraLeft}% + 1rem)` }}
+              />
+            )}
+            {next && (
+              <div
+                className="absolute inset-y-0 bg-slate-200/70"
+                style={{ left: `${eraRight}%`, right: '-1rem' }}
+              />
+            )}
+
+            {years.map(year => {
+              const active = inEra(year)
+              const color = active ? NAVY : '#94a3b8'
+              return (
+                <div key={year} className="absolute top-0" style={{ left: `${pct(year)}%` }}>
+                  <div style={{ width: 1, height: tickHeight(year), backgroundColor: color }} />
+                  {year % labelEvery === 0 && (
+                    <span
+                      className="absolute top-5 -translate-x-1/2 text-[10px] tabular-nums"
+                      style={{ color, fontWeight: year % 10 === 0 ? 700 : 400 }}
+                    >
+                      {year}
+                    </span>
+                  )}
+                </div>
+              )
+            })}
           </div>
-        )}
+        </div>
       </div>
 
-      <div className="pt-3 pointer-events-auto">
-        {next ? (
-          <StepButton onClick={() => setPeriod(next.index)} label={`Next period: ${next.name}`}>
-            <ChevronRight size={22} />
-          </StepButton>
-        ) : (
-          <div className="w-10 h-10" />
-        )}
-      </div>
+      <StepButton period={next} direction="right" onClick={() => setPeriod(next.index)} />
     </div>
   )
 }
