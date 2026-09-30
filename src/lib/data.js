@@ -1,8 +1,7 @@
 import { TIME_PERIODS } from '@/data/timePeriods'
 import { LOCATIONS } from '@/data/locations'
-import { SNAPSHOTS } from '@/data/snapshots'
 
-export { TIME_PERIODS, LOCATIONS, SNAPSHOTS }
+export { TIME_PERIODS, LOCATIONS }
 
 const PERIOD_BY_INDEX = new Map(TIME_PERIODS.map(p => [p.index, p]))
 const LOCATION_BY_ID = new Map(LOCATIONS.map(l => [l.id, l]))
@@ -32,51 +31,22 @@ export function getLocationsForPeriod(periodIndex) {
   return LOCATIONS.filter(loc => isExtant(loc, period))
 }
 
-export function getSnapshot(locationId, periodIndex) {
-  return SNAPSHOTS.find(s => s.locationId === locationId && s.periodIndex === periodIndex) || null
-}
-
-// Merge a Location's defaults with a Snapshot's period-specific overrides
-// into a single object the UI can render directly.
-export function getResolvedContent(locationId, periodIndex) {
+// Every period, paired with the locations on this location's site that are
+// extant in it. The site is the location's siteGroup, or just the location
+// itself when it has none. Periods with no entries are kept so the UI can
+// show gaps on the timeline.
+export function getSiteHistory(locationId) {
   const location = getLocation(locationId)
-  if (!location) return null
-  const snapshot = getSnapshot(locationId, periodIndex)
-  return {
-    location,
-    periodIndex,
-    address: snapshot?.address ?? location.address,
-    latitude: snapshot?.latitude ?? location.latitude,
-    longitude: snapshot?.longitude ?? location.longitude,
-    description: snapshot?.description ?? null,
-    image: snapshot?.image ?? null,
-    imageCaption: snapshot?.imageCaption ?? null,
-    imageDate: snapshot?.imageDate ?? null,
-    imageCredit: snapshot?.imageCredit ?? null,
-    imageCreditLink: snapshot?.imageCreditLink ?? null,
-    hasSnapshot: !!snapshot
-  }
-}
-
-// Returns the periodIndex of the next/previous period in which `locationId`
-// is also extant, or null if none exists. Used to show prev/next buttons in
-// the building drill-down without navigating away from the user's selection.
-export function adjacentPeriodWithLocation(locationId, currentPeriodIndex, direction) {
-  const target = currentPeriodIndex + direction
-  const period = getPeriod(target)
-  const location = getLocation(locationId)
-  return isExtant(location, period) ? target : null
-}
-
-// Other locations sharing the same siteGroup that are extant in this period.
-// Used for opt-in "what was here before / after" affordances.
-export function getSiteGroupPeers(locationId, periodIndex) {
-  const location = getLocation(locationId)
-  if (!location?.siteGroup) return []
-  const period = getPeriod(periodIndex)
-  return LOCATIONS.filter(
-    l => l.id !== locationId && l.siteGroup === location.siteGroup && isExtant(l, period)
-  )
+  if (!location) return []
+  const siteLocations = location.siteGroup
+    ? LOCATIONS.filter(l => l.siteGroup === location.siteGroup)
+    : [location]
+  return TIME_PERIODS.map(period => ({
+    period,
+    entries: siteLocations
+      .filter(l => isExtant(l, period))
+      .sort((a, b) => (a.builtYear ?? 0) - (b.builtYear ?? 0))
+  }))
 }
 
 // Stable display order for categories — also used to sequence locations

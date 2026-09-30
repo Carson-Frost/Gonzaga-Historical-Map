@@ -1,23 +1,31 @@
 // All Locations on the Gonzaga campus, populated from "Building Dates 2024".
 //
 // Schema notes:
-//   id           Stable kebab-case identifier (used in URLs/Snapshots)
+//   id           Stable kebab-case identifier
 //   builtYear    Year the building first appeared on this site (number) or null if unknown.
 //                A null builtYear means we cannot yet bucket it into time periods —
 //                the building will not appear on the map until a year is set.
 //   demolishedYear Year removed (number) or null if still standing.
 //   yearsNote    Free-form string for renovations, renames, fires, etc.
-//                Displayed in the sidebar; not used for extant calculations.
+//                Reference only; not displayed and not used for extant calculations.
 //   siteGroup    Optional. Two locations sharing a siteGroup are understood to occupy
 //                the same plot of land sequentially (e.g. Original College Building →
-//                Administration → College Hall). Used for opt-in "what was here before"
-//                affordances. Most buildings have null and that's fine.
+//                Administration → College Hall). Drives the sidebar "See Also" section.
+//                Most buildings have null and that's fine.
 //   pinColor     Leaflet color name (blue/gold/red/green/orange/yellow/violet/grey/black).
 //   coordinates  Sourced from OpenStreetMap building geometries, Nominatim address
 //                lookups, and the official 2024-25 Gonzaga campus map. Demolished
 //                buildings are placed at the historical site (e.g. football stadium
 //                on the Foley/Crosby block; McGoldrick mill at Lake Arthur).
 //                Use the DEV_MODE coordinate picker to refine.
+//
+//   Optional content fields, shown in the sidebar when present (omit when empty):
+//   description      Long-form text
+//   image            URL to a photo
+//   imageCaption     Caption shown above the image
+//   imageDate        Year/date string shown after the caption
+//   imageCredit      Attribution text under the image — required whenever `image` is set
+//   imageCreditLink  Optional clickable URL for the credit
 
 const ZOOM = 18
 

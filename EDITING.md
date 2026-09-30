@@ -1,12 +1,10 @@
 # Editing content
 
 Previously, data lived in a google spreadsheet. We can revert back to this later if needed, but currently data is just packaged with project; it makes seeing updates and changes faster and easier.
-The content lives in two files:
+The content lives in `src/data/locations.js` — every building,
+statue, and landmark, along with its photo and description.
 
-- `src/data/locations.js` — every building, statue, and landmark.
-- `src/data/snapshots.js` — period-specific photos and descriptions.
-
-Open them in any text editor. With `npm run dev` running, the page
+Open it in any text editor. With `npm run dev` running, the page
 updates on saved changes.
 
 ---
@@ -47,7 +45,7 @@ with a comma after the previous entry:
 | `latitude` / `longitude` | Coordinates. Clicking the map in the running app copies them. |
 | `pinColor` | One of: `blue`, `gold`, `red`, `green`, `orange`, `yellow`, `violet`, `grey`, `black`. |
 | `zoom` | Always `ZOOM` (the constant at the top of the file). |
-| `siteGroup` | Short label shared by buildings that occupied the same plot over time. `null` for most entries. |
+| `siteGroup` | Short label shared by buildings that occupied the same plot over time. `null` for most entries. Buildings sharing one link to each other under "See Also". |
 
 Buildings appear on the map in any era between their built and
 demolished years.
@@ -56,48 +54,26 @@ demolished years.
 
 ## Adding a photo or description
 
-In `src/data/snapshots.js`, add a new entry inside the `[ ]` brackets,
-with a comma after the previous entry:
+Add any of these fields to a location's entry. Leave out the ones you
+don't have.
 
 ```js
-{
-  locationId: 'administration',
-  periodIndex: 1,
   description: 'The Administration Building was the heart of campus through the early decades...',
   image: 'https://example.org/photos/admin-1923.jpg',
   imageCaption: 'Administration Building, viewed from Boone Avenue',
   imageDate: '1923',
   imageCredit: 'Gonzaga University Archives',
   imageCreditLink: 'https://example.org/archives/admin-1923',
-  address: null,
-  latitude: null,
-  longitude: null
-}
 ```
 
 | Field | Notes |
 |---|---|
-| `locationId` | Matches an `id` from `locations.js`. |
-| `periodIndex` | The era number (see below). |
 | `description` | Sidebar text. |
 | `image` | Photo URL. |
 | `imageCaption` | Caption above the photo. |
 | `imageDate` | When the photo was taken. |
-| `imageCredit` | Attribution. Filled in whenever the source is known. |
+| `imageCredit` | Attribution. Required whenever `image` is set. |
 | `imageCreditLink` | Optional URL for the credit. |
-| `address` / `latitude` / `longitude` | Optional. Override the location's defaults for this period only. `null` keeps the defaults. |
-
-Era numbers for `periodIndex`:
-
-| `periodIndex` | Era |
-|---|---|
-| 1 | Founding to WWII (1887–1940) |
-| 2 | WWII to 75th Anniversary (1941–1960) |
-| 3 | Centennial Anniversary (1961–1987) |
-| 4 | Building Blitz (1988–2010) |
-| 5 | Modern GU (2011–present) |
-
-At most one snapshot per location per era.
 
 ---
 
@@ -108,5 +84,3 @@ At most one snapshot per location per era.
   a stray quote inside a `description` string.
 - **Building doesn't appear in the era expected.** Compare its
   `builtYear` and `demolishedYear` against the era's year range.
-- **Snapshot not appearing.** Check that `locationId` matches an entry
-  in `locations.js` and that `periodIndex` is 1–5.

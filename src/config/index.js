@@ -14,16 +14,12 @@ export {
 export {
   TIME_PERIODS,
   LOCATIONS,
-  SNAPSHOTS,
   CATEGORY_ORDER,
   getPeriod,
   getLocation,
   isExtant,
   getLocationsForPeriod,
   getOrderedLocationsForPeriod,
-  getSnapshot,
-  getResolvedContent,
-  adjacentPeriodWithLocation,
   getAdjacentLocationInPeriod,
-  getSiteGroupPeers
+  getSiteHistory
 } from '@/lib/data'
